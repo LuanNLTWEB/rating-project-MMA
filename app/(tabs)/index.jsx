@@ -330,16 +330,7 @@ export default function HomeScreen() {
                 <Text style={styles.menuItemText}>HOME</Text>
               </TouchableOpacity>
 
-              {/* LỊCH SỬ XEM */}
-              <TouchableOpacity
-                style={styles.menuItemRow}
-                onPress={() => {
-                  setMenuVisible(false);
-                  router.push('/explore');
-                }}
-              >
-                <Text style={styles.menuItemText}>WATCH HISTORY</Text>
-              </TouchableOpacity>
+
 
               {/* THƯ VIỆN */}
               <TouchableOpacity

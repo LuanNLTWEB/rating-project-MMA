@@ -494,16 +494,7 @@ export default function ExploreScreen() {
                 <Text style={styles.menuItemText}>HOME</Text>
               </TouchableOpacity>
 
-              {/* WATCH HISTORY */}
-              <TouchableOpacity
-                style={styles.menuItemRow}
-                onPress={() => {
-                  setMenuVisible(false);
-                  router.push('/(tabs)');
-                }}
-              >
-                <Text style={styles.menuItemText}>WATCH HISTORY</Text>
-              </TouchableOpacity>
+
 
               {/* LIBRARY */}
               <TouchableOpacity
