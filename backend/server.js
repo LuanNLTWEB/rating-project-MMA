@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
+import genreRoutes from './routes/genres.js';
+import movieRoutes from './routes/movies.js';
 
 dotenv.config();
 
@@ -12,6 +14,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/genres', genreRoutes);
+app.use('/api/movies', movieRoutes);
 
 app.get('/api', (_req, res) => {
   res.json({ message: 'Movie & Anime API' });
