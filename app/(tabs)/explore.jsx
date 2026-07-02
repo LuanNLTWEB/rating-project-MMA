@@ -188,7 +188,7 @@ export default function ExploreScreen() {
             {item.title}
           </Text>
           <View style={styles.cardMeta}>
-            <Text style={styles.cardYear}>📅 {item.releaseYear}</Text>
+            <Text style={styles.cardYear}>Year: {item.releaseYear}</Text>
             <View style={[
               styles.statusTag,
               item.status === 'Completed' ? styles.statusCompleted :
