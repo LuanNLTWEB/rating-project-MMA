@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import genreRoutes from './routes/genres.js';
 import movieRoutes from './routes/movies.js';
+import userRoutes from './routes/users.js';
+import auditRoutes from './routes/audit.js';
 
 dotenv.config();
 
@@ -16,6 +18,8 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/genres', genreRoutes);
 app.use('/api/movies', movieRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/audit', auditRoutes);
 
 app.get('/api', (_req, res) => {
   res.json({ message: 'Movie & Anime API' });

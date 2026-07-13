@@ -5,9 +5,9 @@ import Movie from '../models/Movie.js';
 
 const router = Router();
 
-// Helper middleware to check if user is staff/admin
+// Helper middleware — staff only (admin uses own panel)
 function requireStaff(req, res, next) {
-  if (!req.user || (req.user.role !== 'staff' && req.user.role !== 'admin')) {
+  if (!req.user || req.user.role !== 'staff') {
     return res.status(403).json({ message: 'Access denied. Staff role required.' });
   }
   next();

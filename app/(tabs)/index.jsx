@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,12 +12,10 @@ import {
   TextInput,
   Modal,
   Dimensions,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useFocusEffect } from 'expo-router';
-import React from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { getGenres } from '@/src/services/genreService';
 import { getMovies } from '@/src/services/movieService';
@@ -39,7 +37,7 @@ export default function HomeScreen() {
 
   // Fetch user data and movies/genres when the screen is focused
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       let isMounted = true;
 
       const loadData = async () => {
@@ -205,8 +203,8 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
-        {/* Staff Operations Console */}
-        {user && (user.role === 'staff' || user.role === 'admin') && (
+        {/* Staff Operations Console — only for staff */}
+        {user && user.role === 'staff' && (
           <View style={styles.staffCard}>
             <View style={styles.staffIconContainer}>
               <MaterialIcons name="admin-panel-settings" size={32} color="#FFFFFF" />
@@ -219,6 +217,26 @@ export default function HomeScreen() {
                 onPress={() => router.push('/manage-genres')}
               >
                 <Text style={styles.staffButtonText}>Manage Genres</Text>
+                <MaterialIcons name="chevron-right" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Admin Console — only for admin */}
+        {user && user.role === 'admin' && (
+          <View style={[styles.staffCard, { backgroundColor: '#1A1A2E' }]}>
+            <View style={[styles.staffIconContainer, { backgroundColor: '#C0392B' }]}>
+              <MaterialIcons name="security" size={32} color="#FFFFFF" />
+            </View>
+            <View style={styles.staffInfo}>
+              <Text style={styles.staffTitle}>Admin Console</Text>
+              <Text style={styles.staffSubtitle}>User management, roles & permissions.</Text>
+              <TouchableOpacity
+                style={[styles.staffButton, { backgroundColor: '#C0392B' }]}
+                onPress={() => router.push('/(admin)')}
+              >
+                <Text style={styles.staffButtonText}>Open Admin Panel</Text>
                 <MaterialIcons name="chevron-right" size={18} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
@@ -408,8 +426,8 @@ export default function HomeScreen() {
                 </View>
               )}
 
-              {/* STAFF PANEL */}
-              {user && (user.role === 'staff' || user.role === 'admin') && (
+              {/* STAFF PANEL — only for staff */}
+              {user && user.role === 'staff' && (
                 <TouchableOpacity
                   style={styles.menuItemRow}
                   onPress={() => {
@@ -418,6 +436,19 @@ export default function HomeScreen() {
                   }}
                 >
                   <Text style={[styles.menuItemText, { color: '#E67E22' }]}>MANAGE GENRES (STAFF)</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* ADMIN PANEL — only for admin */}
+              {user && user.role === 'admin' && (
+                <TouchableOpacity
+                  style={styles.menuItemRow}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    router.push('/(admin)');
+                  }}
+                >
+                  <Text style={[styles.menuItemText, { color: '#E74C3C' }]}>ADMIN PANEL</Text>
                 </TouchableOpacity>
               )}
 

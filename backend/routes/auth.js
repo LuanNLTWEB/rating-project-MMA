@@ -88,6 +88,13 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
+    if (user.status === 'suspended') {
+      return res.status(403).json({ message: 'Your account has been suspended. Contact admin for details.' });
+    }
+    if (user.status === 'banned') {
+      return res.status(403).json({ message: 'Your account has been banned.' });
+    }
+
     const token = generateToken(user);
 
     res.json({

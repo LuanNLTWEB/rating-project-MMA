@@ -11,7 +11,6 @@ import {
   StatusBar,
   ScrollView,
   Keyboard,
-  Platform,
   Modal,
   Dimensions,
 } from 'react-native';
@@ -572,8 +571,8 @@ export default function ExploreScreen() {
                 </View>
               )}
 
-              {/* STAFF PANEL */}
-              {user && (user.role === 'staff' || user.role === 'admin') && (
+              {/* STAFF PANEL — only for staff */}
+              {user && user.role === 'staff' && (
                 <TouchableOpacity
                   style={styles.menuItemRow}
                   onPress={() => {
@@ -582,6 +581,19 @@ export default function ExploreScreen() {
                   }}
                 >
                   <Text style={[styles.menuItemText, { color: '#E67E22' }]}>MANAGE GENRES (STAFF)</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* ADMIN PANEL — only for admin */}
+              {user && user.role === 'admin' && (
+                <TouchableOpacity
+                  style={styles.menuItemRow}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    router.push('/(admin)');
+                  }}
+                >
+                  <Text style={[styles.menuItemText, { color: '#E74C3C' }]}>ADMIN PANEL</Text>
                 </TouchableOpacity>
               )}
 

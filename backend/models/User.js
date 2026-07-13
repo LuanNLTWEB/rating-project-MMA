@@ -16,6 +16,7 @@ const userSchema = new mongoose.Schema(
     dateOfBirth: { type: String, required: true },
     phone: { type: String, required: true, trim: true },
     role: { type: String, enum: ['customer', 'staff', 'admin'], default: 'customer' },
+    status: { type: String, enum: ['active', 'suspended', 'banned'], default: 'active' },
   },
   { timestamps: true }
 );

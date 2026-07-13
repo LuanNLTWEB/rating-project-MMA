@@ -37,7 +37,8 @@ export default function LoginScreen() {
       await AsyncStorage.setItem('token', data.token);
       await AsyncStorage.setItem('user', JSON.stringify(data.user));
       setSuccess(data.message || 'Login successful');
-      setTimeout(() => router.replace('/(tabs)'), 500);
+      const dest = data.user?.role === 'admin' ? '/(admin)' : '/(tabs)';
+      setTimeout(() => router.replace(dest), 500);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
       if (axiosErr.response?.data?.message) {
