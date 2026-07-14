@@ -164,10 +164,14 @@ export default function ExploreScreen() {
 
   const renderMovieItem = ({ item }) => {
     return (
-      <View style={styles.movieItemCard}>
+      <TouchableOpacity
+        style={styles.movieItemCard}
+        activeOpacity={0.85}
+        onPress={() => router.push({ pathname: '/movie-detail', params: { id: item._id } })}
+      >
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: item.image || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
+            source={{ uri: item.poster || item.image || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
             style={styles.cardImage}
             resizeMode="cover"
           />
@@ -218,7 +222,7 @@ export default function ExploreScreen() {
             </Text>
           ) : null}
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -581,6 +585,18 @@ export default function ExploreScreen() {
                   }}
                 >
                   <Text style={[styles.menuItemText, { color: '#E67E22' }]}>MANAGE GENRES (STAFF)</Text>
+                </TouchableOpacity>
+              )}
+
+              {user && user.role === 'staff' && (
+                <TouchableOpacity
+                  style={styles.menuItemRow}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    router.push('/manage-movies');
+                  }}
+                >
+                  <Text style={[styles.menuItemText, { color: '#E67E22' }]}>MANAGE MOVIES (STAFF)</Text>
                 </TouchableOpacity>
               )}
 

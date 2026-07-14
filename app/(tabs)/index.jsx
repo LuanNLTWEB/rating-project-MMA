@@ -219,6 +219,13 @@ export default function HomeScreen() {
                 <Text style={styles.staffButtonText}>Manage Genres</Text>
                 <MaterialIcons name="chevron-right" size={18} color="#FFFFFF" />
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.staffButton, { marginTop: 8 }]}
+                onPress={() => router.push('/manage-movies')}
+              >
+                <Text style={styles.staffButtonText}>Manage Movies</Text>
+                <MaterialIcons name="chevron-right" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -436,6 +443,18 @@ export default function HomeScreen() {
                   }}
                 >
                   <Text style={[styles.menuItemText, { color: '#E67E22' }]}>MANAGE GENRES (STAFF)</Text>
+                </TouchableOpacity>
+              )}
+
+              {user && user.role === 'staff' && (
+                <TouchableOpacity
+                  style={styles.menuItemRow}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    router.push('/manage-movies');
+                  }}
+                >
+                  <Text style={[styles.menuItemText, { color: '#E67E22' }]}>MANAGE MOVIES (STAFF)</Text>
                 </TouchableOpacity>
               )}
 
