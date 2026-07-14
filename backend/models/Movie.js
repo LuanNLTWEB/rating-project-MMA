@@ -1,5 +1,20 @@
 import mongoose from 'mongoose';
 
+const trailerSchema = new mongoose.Schema(
+  {
+    label: {
+      type: String,
+      default: '',
+    },
+    url: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  },
+  { _id: true }
+);
+
 const movieSchema = new mongoose.Schema(
   {
     title: {
@@ -21,12 +36,19 @@ const movieSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Genre',
-        required: true,
       },
     ],
     releaseYear: {
       type: Number,
       required: true,
+    },
+    releaseDate: {
+      type: Date,
+    },
+    episodes: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     score: {
       type: Number,
@@ -39,13 +61,31 @@ const movieSchema = new mongoose.Schema(
       enum: ['Upcoming', 'Ongoing', 'Completed'],
       default: 'Ongoing',
     },
+    // Poster image URL (used by the app UI)
+    poster: {
+      type: String,
+      default: '',
+    },
+    // Legacy image field kept for backward compatibility with older records
     image: {
       type: String,
       default: '',
     },
+    // Banner image URL shown on the movie detail page
+    banner: {
+      type: String,
+      default: '',
+    },
+    // Trailer links (add / edit / delete)
+    trailers: [trailerSchema],
     trending: {
       type: Boolean,
       default: false,
+    },
+    // Visibility status controlled by staff (hidden anime won't show in public lists)
+    visible: {
+      type: Boolean,
+      default: true,
     },
   },
   { timestamps: true }
