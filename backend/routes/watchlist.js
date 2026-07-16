@@ -2,6 +2,11 @@ import { Router } from 'express';
 import auth from '../middleware/auth.js';
 import Watchlist from '../models/Watchlist.js';
 import Movie from '../models/Movie.js';
+import UserActivityLog from '../models/UserActivityLog.js';
+
+async function log(userId, action, details = '') {
+  try { await UserActivityLog.create({ userId, action, details }); } catch {}
+}
 
 const router = Router();
 
@@ -69,6 +74,8 @@ router.post('/:movieId', auth, async (req, res) => {
       status,
     });
 
+    log(req.user.id, 'watchlist_add', `${movie.title} - ${status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}`);
+
     res.status(201).json({ message: 'Added to watchlist', id: entry._id });
   } catch (err) {
     if (err.name === 'CastError') return res.status(404).json({ message: 'Movie not found' });
@@ -79,18 +86,22 @@ router.post('/:movieId', auth, async (req, res) => {
 // PATCH /api/watchlist/:movieId — update watch status
 router.patch('/:movieId', auth, async (req, res) => {
   try {
-    const status = req.body.status;
-    if (!['watching', 'plan_to_watch', 'completed'].includes(status)) {
+    const newStatus = req.body.status;
+    if (!['watching', 'plan_to_watch', 'completed'].includes(newStatus)) {
       return res.status(400).json({ message: 'Invalid watch status' });
     }
 
-    const entry = await Watchlist.findOneAndUpdate(
-      { userId: req.user.id, movieId: req.params.movieId },
-      { status },
-      { new: true }
-    );
+    const entry = await Watchlist.findOne({
+      userId: req.user.id,
+      movieId: req.params.movieId,
+    }).populate('movieId', 'title');
 
     if (!entry) return res.status(404).json({ message: 'Not in watchlist' });
+
+    entry.status = newStatus;
+    await entry.save();
+
+    log(req.user.id, 'watchlist_update', `${entry.movieId?.title || ''} - ${newStatus.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}`);
 
     res.json({ message: 'Watch status updated', status: entry.status });
   } catch {
@@ -101,12 +112,18 @@ router.patch('/:movieId', auth, async (req, res) => {
 // DELETE /api/watchlist/:movieId — remove from watchlist
 router.delete('/:movieId', auth, async (req, res) => {
   try {
-    const deleted = await Watchlist.findOneAndDelete({
+    const entry = await Watchlist.findOne({
       userId: req.user.id,
       movieId: req.params.movieId,
-    });
+    }).populate('movieId', 'title');
 
-    if (!deleted) return res.status(404).json({ message: 'Not in watchlist' });
+    if (!entry) return res.status(404).json({ message: 'Not in watchlist' });
+
+    const title = entry.movieId?.title || '';
+
+    await Watchlist.findByIdAndDelete(entry._id);
+
+    log(req.user.id, 'watchlist_remove', title);
 
     res.json({ message: 'Removed from watchlist' });
   } catch {

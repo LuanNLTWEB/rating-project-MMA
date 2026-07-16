@@ -351,6 +351,9 @@ export default function WatchlistScreen() {
                   <Text style={[styles.menuItemText, { color: '#E74C3C' }]}>ADMIN PANEL</Text>
                 </TouchableOpacity>
               )}
+              <TouchableOpacity style={styles.menuItemRow} onPress={() => { setMenuVisible(false); router.push('/profile'); }}>
+                <Text style={styles.menuItemText}>PROFILE</Text>
+              </TouchableOpacity>
             </ScrollView>
 
             <View style={styles.drawerFooter}>

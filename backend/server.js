@@ -9,6 +9,7 @@ import userRoutes from './routes/users.js';
 import auditRoutes from './routes/audit.js';
 import favoriteRoutes from './routes/favorites.js';
 import watchlistRoutes from './routes/watchlist.js';
+import profileRoutes from './routes/profile.js';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/watchlist', watchlistRoutes);
+app.use('/api/profile', profileRoutes);
 
 app.get('/api', (_req, res) => {
   res.json({ message: 'Movie & Anime API' });

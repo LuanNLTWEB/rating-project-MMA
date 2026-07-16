@@ -482,6 +482,10 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               )}
 
+              <TouchableOpacity style={styles.menuItemRow} onPress={() => { setMenuVisible(false); router.push('/profile'); }}>
+                <Text style={styles.menuItemText}>PROFILE</Text>
+              </TouchableOpacity>
+
             </ScrollView>
 
             {/* Logout at bottom */}

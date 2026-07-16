@@ -279,7 +279,9 @@ export default function MovieDetailScreen() {
 
             {showWlDropdown && (
               <View style={styles.wlDropdown}>
-                {wlDropdownItems.map((item) => (
+                {wlDropdownItems
+                  .filter((item) => item.key !== '__remove__' || !!watchStatus)
+                  .map((item) => (
                   <TouchableOpacity
                     key={item.key}
                     style={[

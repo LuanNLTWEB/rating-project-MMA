@@ -2,6 +2,11 @@ import { Router } from 'express';
 import auth from '../middleware/auth.js';
 import Favorite from '../models/Favorite.js';
 import Movie from '../models/Movie.js';
+import UserActivityLog from '../models/UserActivityLog.js';
+
+async function log(userId, action, details = '') {
+  try { await UserActivityLog.create({ userId, action, details }); } catch {}
+}
 
 const router = Router();
 
@@ -57,6 +62,8 @@ router.post('/:movieId', auth, async (req, res) => {
       movieId: req.params.movieId,
     });
 
+    log(req.user.id, 'favorite_add', movie.title);
+
     res.status(201).json({ message: 'Added to favorites', id: favorite._id });
   } catch (err) {
     if (err.name === 'CastError') return res.status(404).json({ message: 'Movie not found' });
@@ -67,12 +74,18 @@ router.post('/:movieId', auth, async (req, res) => {
 // DELETE /api/favorites/:movieId — remove from favorites
 router.delete('/:movieId', auth, async (req, res) => {
   try {
-    const deleted = await Favorite.findOneAndDelete({
+    const entry = await Favorite.findOne({
       userId: req.user.id,
       movieId: req.params.movieId,
-    });
+    }).populate('movieId', 'title');
 
-    if (!deleted) return res.status(404).json({ message: 'Not in favorites' });
+    if (!entry) return res.status(404).json({ message: 'Not in favorites' });
+
+    const title = entry.movieId?.title || '';
+
+    await Favorite.findByIdAndDelete(entry._id);
+
+    log(req.user.id, 'favorite_remove', title);
 
     res.json({ message: 'Removed from favorites' });
   } catch {
