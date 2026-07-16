@@ -1,4 +1,6 @@
 import { getMovie } from '@/src/services/movieService';
+import { addFavorite, removeFavorite, getFavoriteIds } from '@/src/services/favoriteService';
+import { addToWatchlist, removeFromWatchlist, getWatchlistIds, updateWatchStatus } from '@/src/services/watchlistService';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -12,6 +14,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -24,6 +27,11 @@ export default function MovieDetailScreen() {
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [watchStatus, setWatchStatus] = useState(null);
+  const [favLoading, setFavLoading] = useState(false);
+  const [wlLoading, setWlLoading] = useState(false);
+  const [showWlDropdown, setShowWlDropdown] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -43,6 +51,88 @@ export default function MovieDetailScreen() {
     fetchMovie();
     return () => { isMounted = false; };
   }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const checkStatus = async () => {
+      try {
+        const [favRes, wlRes] = await Promise.all([
+          getFavoriteIds(),
+          getWatchlistIds(),
+        ]);
+        setIsFavorite(favRes.includes(id));
+        const wlItem = wlRes.find((w) => w.movieId === id);
+        setWatchStatus(wlItem ? wlItem.status : null);
+      } catch {}
+    };
+    checkStatus();
+  }, [id]);
+
+  const handleToggleFavorite = async () => {
+    try {
+      setFavLoading(true);
+      if (isFavorite) {
+        await removeFavorite(id);
+        setIsFavorite(false);
+      } else {
+        await addFavorite(id);
+        setIsFavorite(true);
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Action failed';
+      Alert.alert('Error', msg);
+    } finally {
+      setFavLoading(false);
+    }
+  };
+
+  const handleWlSelect = async (status) => {
+    setShowWlDropdown(false);
+    try {
+      setWlLoading(true);
+      if (watchStatus) {
+        await updateWatchStatus(id, status);
+      } else {
+        await addToWatchlist(id, status);
+      }
+      setWatchStatus(status);
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Action failed';
+      Alert.alert('Error', msg);
+    } finally {
+      setWlLoading(false);
+    }
+  };
+
+  const handleWlRemove = async () => {
+    setShowWlDropdown(false);
+    try {
+      setWlLoading(true);
+      await removeFromWatchlist(id);
+      setWatchStatus(null);
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Action failed';
+      Alert.alert('Error', msg);
+    } finally {
+      setWlLoading(false);
+    }
+  };
+
+  const wlStatusLabel = (s) => {
+    switch (s) {
+      case 'watching': return 'Watching';
+      case 'plan_to_watch': return 'Plan to Watch';
+      case 'completed': return 'Completed';
+      default: return 'Watchlist';
+    }
+  };
+
+  const wlDropdownItems = [
+    { key: 'watching', label: 'Watching', color: '#2980B9' },
+    { key: 'plan_to_watch', label: 'Plan to Watch', color: '#D4AC0D' },
+    { key: 'completed', label: 'Completed', color: '#16A085' },
+    { key: '__remove__', label: 'Remove from Watchlist', color: '#E74C3C' },
+  ];
 
   if (loading) {
     return (
@@ -159,6 +249,61 @@ export default function MovieDetailScreen() {
                 </View>
               ) : null}
             </View>
+          </View>
+
+          {/* Favorite & Watchlist Buttons */}
+          <View style={styles.section}>
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity
+                style={[styles.actionBtn, isFavorite && styles.actionBtnActive]}
+                onPress={handleToggleFavorite}
+                disabled={favLoading}
+              >
+                <MaterialIcons name={isFavorite ? 'favorite' : 'favorite-border'} size={20} color={isFavorite ? '#FFF' : '#E74C3C'} />
+                <Text style={[styles.actionBtnText, isFavorite && styles.actionBtnTextActive]}>
+                  {isFavorite ? 'Favorited' : 'Favorite'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionBtn, watchStatus && styles.actionBtnWlActive]}
+                onPress={() => setShowWlDropdown(!showWlDropdown)}
+                disabled={wlLoading}
+              >
+                <MaterialIcons name={watchStatus ? 'bookmark' : 'bookmark-border'} size={20} color={watchStatus ? '#FFF' : '#D35400'} />
+                <Text style={[styles.actionBtnText, watchStatus && styles.actionBtnTextActive]}>
+                  {wlStatusLabel(watchStatus)}
+                </Text>
+                {watchStatus && <MaterialIcons name="arrow-drop-down" size={18} color="#FFF" />}
+              </TouchableOpacity>
+            </View>
+
+            {showWlDropdown && (
+              <View style={styles.wlDropdown}>
+                {wlDropdownItems.map((item) => (
+                  <TouchableOpacity
+                    key={item.key}
+                    style={[
+                      styles.wlDropdownItem,
+                      watchStatus === item.key && styles.wlDropdownItemActive,
+                    ]}
+                    onPress={() => {
+                      if (item.key === '__remove__') {
+                        handleWlRemove();
+                      } else {
+                        handleWlSelect(item.key);
+                      }
+                    }}
+                  >
+                    <Text style={[styles.wlDropdownItemText, { color: item.color }]}>
+                      {item.label}
+                    </Text>
+                    {watchStatus === item.key && (
+                      <MaterialIcons name="check" size={16} color={item.color} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* Genres */}
@@ -463,5 +608,70 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#BCAAA4',
     marginTop: 2,
+  },
+
+  // Action Buttons
+  actionButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#E8D5C4',
+  },
+  actionBtnActive: {
+    backgroundColor: '#E74C3C',
+    borderColor: '#E74C3C',
+  },
+  actionBtnWlActive: {
+    backgroundColor: '#D35400',
+    borderColor: '#D35400',
+  },
+  actionBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2C1810',
+  },
+  actionBtnTextActive: {
+    color: '#FFFFFF',
+  },
+
+  // Watchlist Dropdown
+  wlDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E8D5C4',
+    marginTop: 6,
+    shadowColor: '#2C1810',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  wlDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5EBE6',
+  },
+  wlDropdownItemActive: {
+    backgroundColor: '#FFF8F0',
+  },
+  wlDropdownItemText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

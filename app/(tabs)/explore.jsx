@@ -499,15 +499,26 @@ export default function ExploreScreen() {
 
 
 
-              {/* LIBRARY */}
+              {/* FAVORITES */}
               <TouchableOpacity
                 style={styles.menuItemRow}
                 onPress={() => {
                   setMenuVisible(false);
-                  router.push('/(tabs)');
+                  router.push('/(tabs)/favorites');
                 }}
               >
-                <Text style={styles.menuItemText}>LIBRARY</Text>
+                <Text style={styles.menuItemText}>FAVORITES</Text>
+              </TouchableOpacity>
+
+              {/* WATCHLIST */}
+              <TouchableOpacity
+                style={styles.menuItemRow}
+                onPress={() => {
+                  setMenuVisible(false);
+                  router.push('/(tabs)/watchlist');
+                }}
+              >
+                <Text style={styles.menuItemText}>WATCHLIST</Text>
               </TouchableOpacity>
 
               {/* GENRES (Dropdown) */}

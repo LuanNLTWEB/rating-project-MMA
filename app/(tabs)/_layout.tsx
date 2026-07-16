@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
@@ -11,35 +12,49 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: '#D35400',
         tabBarInactiveTintColor: '#8D6E63',
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarLabelPosition: 'beside-icon', // Places text horizontally centered
         tabBarLabelStyle: {
-          fontSize: 14,
-          fontWeight: '700',
+          fontSize: 11,
+          fontWeight: '600',
         },
         tabBarStyle: {
-          height: 52,
+          height: 60,
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: '#F5EBE6',
-          paddingBottom: 0, // Removes extra padding reserved for icons
+          paddingBottom: 6,
+          paddingTop: 4,
         },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: () => null, // Removes the icon
+          tabBarIcon: ({ color }) => <MaterialIcons name="home" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Explore',
-          tabBarIcon: () => null, // Removes the icon
+          tabBarIcon: ({ color }) => <MaterialIcons name="search" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="favorites"
+        options={{
+          title: 'Favorites',
+          tabBarIcon: ({ color }) => <MaterialIcons name="favorite" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="watchlist"
+        options={{
+          title: 'Watchlist',
+          tabBarIcon: ({ color }) => <MaterialIcons name="bookmark" size={22} color={color} />,
         }}
       />
     </Tabs>
