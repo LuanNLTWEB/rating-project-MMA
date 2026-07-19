@@ -56,6 +56,10 @@ const movieSchema = new mongoose.Schema(
       max: 10,
       default: 0,
     },
+    reviewCount: {
+      type: Number,
+      default: 0,
+    },
     status: {
       type: String,
       enum: ['Upcoming', 'Ongoing', 'Completed'],

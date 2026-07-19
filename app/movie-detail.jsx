@@ -1,6 +1,9 @@
 import { getMovie } from '@/src/services/movieService';
 import { addFavorite, removeFavorite, getFavoriteIds } from '@/src/services/favoriteService';
 import { addToWatchlist, removeFromWatchlist, getWatchlistIds, updateWatchStatus } from '@/src/services/watchlistService';
+import { getMovieReviews, createReview, deleteReview, updateReview } from '@/src/services/reviewService';
+import { reportReview } from '@/src/services/reportService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -15,6 +18,8 @@ import {
   TouchableOpacity,
   View,
   Alert,
+  TextInput,
+  Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -32,15 +37,34 @@ export default function MovieDetailScreen() {
   const [favLoading, setFavLoading] = useState(false);
   const [wlLoading, setWlLoading] = useState(false);
   const [showWlDropdown, setShowWlDropdown] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [user, setUser] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [selectedReviewId, setSelectedReviewId] = useState(null);
+  const [editingReviewId, setEditingReviewId] = useState(null);
 
   useEffect(() => {
     if (!id) return;
     let isMounted = true;
-    const fetchMovie = async () => {
+    const fetchMovieAndReviews = async () => {
       try {
         setLoading(true);
-        const data = await getMovie(id);
-        if (isMounted) setMovie(data);
+        const [data, reviewsData] = await Promise.all([
+          getMovie(id),
+          getMovieReviews(id).catch(() => [])
+        ]);
+        
+        const userStr = await AsyncStorage.getItem('user');
+        if (userStr && isMounted) setUser(JSON.parse(userStr));
+
+        if (isMounted) {
+          setMovie(data);
+          setReviews(reviewsData);
+        }
       } catch (err) {
         console.error('Fetch movie detail error:', err);
         if (isMounted) setError('Could not load movie details.');
@@ -48,7 +72,7 @@ export default function MovieDetailScreen() {
         if (isMounted) setLoading(false);
       }
     };
-    fetchMovie();
+    fetchMovieAndReviews();
     return () => { isMounted = false; };
   }, [id]);
 
@@ -115,6 +139,61 @@ export default function MovieDetailScreen() {
       Alert.alert('Error', msg);
     } finally {
       setWlLoading(false);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewText.trim()) return Alert.alert('Error', 'Review text cannot be empty');
+    try {
+      if (editingReviewId) {
+        await updateReview(editingReviewId, { overallRating: reviewRating, bodyText: reviewText });
+        Alert.alert('Success', 'Review updated successfully');
+      } else {
+        await createReview(id, { overallRating: reviewRating, bodyText: reviewText });
+        Alert.alert('Success', 'Review added successfully');
+      }
+      setShowReviewModal(false);
+      setReviewText('');
+      setReviewRating(5);
+      setEditingReviewId(null);
+      const updatedReviews = await getMovieReviews(id);
+      setReviews(updatedReviews);
+    } catch (err) {
+      Alert.alert('Error', err?.response?.data?.message || 'Failed to save review');
+    }
+  };
+
+  const handleEditClick = (review) => {
+    setEditingReviewId(review._id);
+    setReviewRating(review.overallRating);
+    setReviewText(review.bodyText);
+    setShowReviewModal(true);
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    Alert.alert('Delete Review', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', onPress: async () => {
+          try {
+            await deleteReview(reviewId);
+            setReviews(reviews.filter(r => r._id !== reviewId));
+          } catch (err) {
+            Alert.alert('Error', 'Failed to delete review');
+          }
+        }
+      }
+    ]);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!reportReason.trim()) return Alert.alert('Error', 'Please enter a reason');
+    try {
+      await reportReview(selectedReviewId, reportReason);
+      setShowReportModal(false);
+      setReportReason('');
+      Alert.alert('Success', 'Report submitted successfully');
+    } catch (err) {
+      Alert.alert('Error', err?.response?.data?.message || 'Failed to submit report');
     }
   };
 
@@ -354,8 +433,133 @@ export default function MovieDetailScreen() {
               ))}
             </View>
           ) : null}
+          {/* Reviews Section */}
+          <View style={styles.section}>
+            <View style={styles.reviewHeader}>
+              <Text style={styles.sectionTitle}>Reviews & Ratings</Text>
+              {user && user.role === 'customer' && !reviews.some(r => r.user?._id === (user._id || user.id)) && (
+                <TouchableOpacity style={styles.writeReviewBtn} onPress={() => {
+                  setEditingReviewId(null);
+                  setReviewText('');
+                  setReviewRating(5);
+                  setShowReviewModal(true);
+                }}>
+                  <MaterialIcons name="edit" size={16} color="#FFF" />
+                  <Text style={styles.writeReviewBtnText}>Write Review</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {reviews.length === 0 ? (
+              <Text style={styles.emptyReviewText}>No reviews yet. Be the first to review!</Text>
+            ) : (
+              reviews.map((review) => (
+                <View key={review._id} style={styles.reviewCard}>
+                  <View style={styles.reviewHeaderRow}>
+                    <View style={styles.reviewUser}>
+                      {review.user?.avatar ? (
+                        <Image source={{ uri: review.user.avatar }} style={{ width: 24, height: 24, borderRadius: 12 }} />
+                      ) : (
+                        <MaterialIcons name="account-circle" size={24} color="#BCAAA4" />
+                      )}
+                      <Text style={styles.reviewUserName}>{review.user?.username || review.user?.name || 'User'}</Text>
+                    </View>
+                    <View style={styles.reviewScore}>
+                      <MaterialIcons name="star" size={14} color="#F4C430" />
+                      <Text style={styles.reviewScoreText}>{review.overallRating}/5</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.reviewBody}>{review.bodyText}</Text>
+                  
+                  <View style={styles.reviewActions}>
+                    <Text style={styles.reviewDate}>
+                      {new Date(review.createdAt).toLocaleDateString()}
+                    </Text>
+                    {user && (user._id || user.id) === review.user?._id ? (
+                      <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <TouchableOpacity onPress={() => handleEditClick(review)}>
+                          <Text style={styles.editReviewText}>Edit</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => handleDeleteReview(review._id)}>
+                          <Text style={styles.deleteReviewText}>Delete</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : user && user.role === 'customer' ? (
+                      <TouchableOpacity onPress={() => { setSelectedReviewId(review._id); setShowReportModal(true); }}>
+                        <Text style={styles.reportReviewText}>Report</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+
         </View>
       </ScrollView>
+
+      {/* Write Review Modal */}
+      <Modal visible={showReviewModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Write a Review</Text>
+            
+            <Text style={styles.modalLabel}>Rating: {reviewRating}/5</Text>
+            <View style={styles.ratingButtonsRow}>
+              {[1,2,3,4,5].map(num => (
+                <TouchableOpacity key={num} style={[styles.ratingBtn, reviewRating === num && styles.ratingBtnActive]} onPress={() => setReviewRating(num)}>
+                  <Text style={[styles.ratingBtnText, reviewRating === num && styles.ratingBtnTextActive]}>{num}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.modalLabel}>Your Review</Text>
+            <TextInput
+              style={styles.reviewInput}
+              multiline
+              numberOfLines={4}
+              placeholder="What did you think about this movie?"
+              value={reviewText}
+              onChangeText={setReviewText}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowReviewModal(false)}>
+                <Text style={styles.modalCancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalSubmitBtn} onPress={handleSubmitReview}>
+                <Text style={styles.modalSubmitBtnText}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal visible={showReportModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Report Review</Text>
+            
+            <Text style={styles.modalLabel}>Reason for reporting:</Text>
+            <TextInput
+              style={styles.reviewInput}
+              placeholder="e.g. Spam, Offensive language, Spoilers..."
+              value={reportReason}
+              onChangeText={setReportReason}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowReportModal(false)}>
+                <Text style={styles.modalCancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalSubmitBtn} onPress={handleSubmitReport}>
+                <Text style={styles.modalSubmitBtnText}>Report</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -676,4 +880,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  writeReviewBtn: { backgroundColor: '#D35400', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 4 },
+  writeReviewBtnText: { color: '#FFF', fontSize: 12, fontWeight: '600' },
+  emptyReviewText: { color: '#8D6E63', fontStyle: 'italic', fontSize: 13 },
+  reviewCard: { backgroundColor: '#FFF', padding: 12, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#F5EBE6' },
+  reviewHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  reviewUser: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  reviewUserName: { fontSize: 13, fontWeight: '700', color: '#2C1810' },
+  reviewScore: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: '#FFF8F0', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  reviewScoreText: { fontSize: 12, fontWeight: '700', color: '#D35400' },
+  reviewBody: { fontSize: 13, color: '#5D4037', lineHeight: 20, marginBottom: 8 },
+  reviewActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F5EBE6', paddingTop: 8 },
+  reviewDate: { fontSize: 11, color: '#BCAAA4' },
+  deleteReviewText: { fontSize: 12, color: '#E74C3C', fontWeight: '600' },
+  editReviewText: { fontSize: 12, color: '#3498DB', fontWeight: '600' },
+  reportReviewText: { fontSize: 12, color: '#8D6E63', fontWeight: '600' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  modalContent: { backgroundColor: '#FFF', borderRadius: 16, padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: '#2C1810', marginBottom: 16, textAlign: 'center' },
+  modalLabel: { fontSize: 14, fontWeight: '600', color: '#5D4037', marginBottom: 8, marginTop: 8 },
+  ratingButtonsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
+  ratingBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#F5EBE6', justifyContent: 'center', alignItems: 'center' },
+  ratingBtnActive: { backgroundColor: '#D35400' },
+  ratingBtnText: { color: '#8D6E63', fontSize: 12, fontWeight: '600' },
+  ratingBtnTextActive: { color: '#FFF' },
+  reviewInput: { backgroundColor: '#F9F5F2', borderRadius: 10, padding: 12, minHeight: 80, textAlignVertical: 'top', borderWidth: 1, borderColor: '#E8D5C4', marginBottom: 20 },
+  modalActions: { flexDirection: 'row', gap: 12 },
+  modalCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F5EBE6', alignItems: 'center' },
+  modalCancelBtnText: { color: '#8D6E63', fontWeight: '700' },
+  modalSubmitBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: '#D35400', alignItems: 'center' },
+  modalSubmitBtnText: { color: '#FFF', fontWeight: '700' },
 });
+

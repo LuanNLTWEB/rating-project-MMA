@@ -17,6 +17,7 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, required: true, trim: true },
     role: { type: String, enum: ['customer', 'staff', 'admin'], default: 'customer' },
     status: { type: String, enum: ['active', 'suspended', 'banned'], default: 'active' },
+    avatar: { type: String, default: '' },
   },
   { timestamps: true }
 );

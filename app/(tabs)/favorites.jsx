@@ -280,6 +280,11 @@ export default function FavoritesScreen() {
                   <Text style={[styles.menuItemText, { color: '#E67E22' }]}>MANAGE MOVIES (STAFF)</Text>
                 </TouchableOpacity>
               )}
+              {user && user.role === 'staff' && (
+                <TouchableOpacity style={styles.menuItemRow} onPress={() => { setMenuVisible(false); router.push('/manage-reports'); }}>
+                  <Text style={[styles.menuItemText, { color: '#E67E22' }]}>MANAGE COMMENTS (STAFF)</Text>
+                </TouchableOpacity>
+              )}
               {user && user.role === 'admin' && (
                 <TouchableOpacity style={styles.menuItemRow} onPress={() => { setMenuVisible(false); router.push('/(admin)'); }}>
                   <Text style={[styles.menuItemText, { color: '#E74C3C' }]}>ADMIN PANEL</Text>
