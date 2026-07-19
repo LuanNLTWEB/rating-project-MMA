@@ -25,6 +25,7 @@ import {
 } from 'react-native';
 import { actions, RichEditor, RichToolbar } from 'react-native-pell-rich-editor';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 
 const STATUSES = ['draft', 'published'];
 
@@ -60,6 +61,52 @@ export default function ManageNewsScreen() {
   const [formError, setFormError] = useState('');
 
   const richText = React.useRef();
+
+  // Custom Prompt for Rich Text Link/Image
+  const [promptVisible, setPromptVisible] = useState(false);
+  const [promptType, setPromptType] = useState(''); // 'link' or 'image'
+  const [promptUrl, setPromptUrl] = useState('');
+  const [promptTextInput, setPromptTextInput] = useState('');
+
+  const onPressAddImage = () => {
+    setPromptType('image');
+    setPromptUrl('');
+    setPromptVisible(true);
+  };
+
+  const onPressAddLink = () => {
+    setPromptType('link');
+    setPromptUrl('');
+    setPromptTextInput('');
+    setPromptVisible(true);
+  };
+
+  const submitPrompt = () => {
+    setPromptVisible(false);
+    if (!promptUrl.trim()) return;
+    
+    if (promptType === 'image') {
+      richText.current?.insertImage(promptUrl.trim());
+    } else if (promptType === 'link') {
+      richText.current?.insertLink(promptTextInput.trim() || promptUrl.trim(), promptUrl.trim());
+    }
+  };
+
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['image'],
+      allowsEditing: true,
+      quality: 0.6,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+      setPromptVisible(false);
+      richText.current?.insertImage(base64Image);
+    }
+  };
 
   const fetchAllData = async () => {
     try {
@@ -318,7 +365,10 @@ export default function ManageNewsScreen() {
                     actions.insertBulletsList,
                     actions.insertOrderedList,
                     actions.insertLink,
+                    actions.insertImage,
                   ]}
+                  onPressAddImage={onPressAddImage}
+                  onPressAddLink={onPressAddLink}
                   style={styles.richToolbar}
                   iconTint="#8D6E63"
                   selectedIconTint="#D35400"
@@ -375,6 +425,56 @@ export default function ManageNewsScreen() {
             </View>
           </View>
         </SafeAreaView>
+      </Modal>
+
+      {/* Custom Prompt Modal for Link/Image */}
+      <Modal animationType="fade" transparent visible={promptVisible} onRequestClose={() => setPromptVisible(false)}>
+        <View style={styles.promptOverlay}>
+          <View style={styles.promptCard}>
+            <Text style={styles.promptTitle}>
+              {promptType === 'image' ? 'Insert Image' : 'Insert Link'}
+            </Text>
+            
+            <Text style={styles.inputLabel}>URL</Text>
+            <TextInput 
+              style={styles.textInput} 
+              placeholder={promptType === 'image' ? "https://.../img.jpg" : "https://..."} 
+              placeholderTextColor="#BCAAA4" 
+              value={promptUrl} 
+              onChangeText={setPromptUrl}
+              autoCapitalize="none" 
+            />
+
+            {promptType === 'image' && (
+              <TouchableOpacity style={styles.pickImageBtn} onPress={pickImage}>
+                <MaterialIcons name="photo-library" size={20} color="#D35400" />
+                <Text style={styles.pickImageBtnText}>Pick from Gallery</Text>
+              </TouchableOpacity>
+            )}
+
+            {promptType === 'link' && (
+              <>
+                <Text style={styles.inputLabel}>Display Text</Text>
+                <TextInput 
+                  style={styles.textInput} 
+                  placeholder="Click here..." 
+                  placeholderTextColor="#BCAAA4" 
+                  value={promptTextInput} 
+                  onChangeText={setPromptTextInput} 
+                />
+              </>
+            )}
+
+            <View style={styles.promptFooter}>
+              <TouchableOpacity style={[styles.footerBtn, styles.cancelBtn]} onPress={() => setPromptVisible(false)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.footerBtn, styles.saveBtn]} onPress={submitPrompt}>
+                <Text style={styles.saveBtnText}>Insert</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -472,4 +572,12 @@ const styles = StyleSheet.create({
   saveBtn: { backgroundColor: '#D35400', shadowColor: '#D35400', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   btnDisabled: { opacity: 0.6 },
+  
+  // Prompt Modal Styles
+  promptOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(44, 24, 16, 0.6)', padding: 24 },
+  promptCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 24, width: '100%', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 },
+  promptTitle: { fontSize: 18, fontWeight: '700', color: '#2C1810', marginBottom: 8, textAlign: 'center' },
+  promptFooter: { flexDirection: 'row', gap: 12, marginTop: 24 },
+  pickImageBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FBEBE1', paddingVertical: 12, borderRadius: 10, marginTop: 12, gap: 8 },
+  pickImageBtnText: { color: '#D35400', fontSize: 14, fontWeight: '600' },
 });

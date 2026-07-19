@@ -8,6 +8,7 @@ import {
   Image,
   ActivityIndicator,
   StatusBar,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -22,6 +23,7 @@ function formatDate(date) {
 
 export default function NewsListScreen() {
   const [news, setNews] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -75,16 +77,37 @@ export default function NewsListScreen() {
     </TouchableOpacity>
   );
 
+  const filteredNews = news.filter((item) =>
+    item.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF8F0" />
       
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <MaterialIcons name="arrow-back" size={24} color="#2C1810" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Latest News</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerTop}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <MaterialIcons name="arrow-back" size={24} color="#2C1810" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Latest News</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.searchContainer}>
+          <MaterialIcons name="search" size={20} color="#8D6E63" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search news..."
+            placeholderTextColor="#8D6E63"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <MaterialIcons name="close" size={20} color="#8D6E63" />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
 
       {loading ? (
@@ -99,14 +122,14 @@ export default function NewsListScreen() {
             <Text style={styles.retryBtnText}>Retry</Text>
           </TouchableOpacity>
         </View>
-      ) : news.length === 0 ? (
+      ) : filteredNews.length === 0 ? (
         <View style={styles.centeredContainer}>
           <MaterialIcons name="article" size={48} color="#BCAAA4" />
           <Text style={styles.emptyText}>No articles found</Text>
         </View>
       ) : (
         <FlatList
-          data={news}
+          data={filteredNews}
           renderItem={renderNewsItem}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
@@ -122,10 +145,17 @@ export default function NewsListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF8F0' },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12,
     borderBottomWidth: 1, borderBottomColor: '#F5EBE6', backgroundColor: '#FFF8F0',
+    gap: 12,
   },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  searchContainer: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF',
+    borderRadius: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: '#F5EBE6',
+    height: 44,
+  },
+  searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: '#2C1810' },
   backButton: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF',
     justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#F0E4DC',

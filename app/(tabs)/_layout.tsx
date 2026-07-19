@@ -61,7 +61,7 @@ export default function TabLayout() {
         name="news"
         options={{
           title: 'News',
-          tabBarIcon: () => null, // Removes the icon
+          tabBarIcon: ({ color }) => <MaterialIcons name="article" size={22} color={color} />,
         }}
       />
     </Tabs>
