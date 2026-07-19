@@ -16,7 +16,7 @@ function requireStaff(req, res, next) {
 // US21 & US23 / US24: GET public genres (visible: true)
 router.get('/', async (req, res) => {
   try {
-    const genres = await Genre.find({ visible: true }).sort({ name: 1 });
+    const genres = await Genre.find({ $or: [{ visible: true }, { isActive: true }] }).sort({ name: 1 });
     res.json(genres);
   } catch (err) {
     console.error('Get genres error:', err);
