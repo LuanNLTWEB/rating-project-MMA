@@ -226,6 +226,13 @@ export default function HomeScreen() {
                 <Text style={styles.staffButtonText}>Manage Movies</Text>
                 <MaterialIcons name="chevron-right" size={18} color="#FFFFFF" />
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.staffButton, { marginTop: 8 }]}
+                onPress={() => router.push('/manage-news')}
+              >
+                <Text style={styles.staffButtonText}>Manage News</Text>
+                <MaterialIcons name="chevron-right" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -378,6 +385,17 @@ export default function HomeScreen() {
               >
                 <Text style={styles.menuItemText}>WATCHLIST</Text>
               </TouchableOpacity>
+              
+              {/* TIN TỨC / NEWS */}
+              <TouchableOpacity
+                style={styles.menuItemRow}
+                onPress={() => {
+                  setMenuVisible(false);
+                  router.push('/news');
+                }}
+              >
+                <Text style={[styles.menuItemText, { color: '#2980B9' }]}>NEWS</Text>
+              </TouchableOpacity>
 
               {/* THỂ LOẠI (Dropdown) */}
               <TouchableOpacity
@@ -466,6 +484,18 @@ export default function HomeScreen() {
                   }}
                 >
                   <Text style={[styles.menuItemText, { color: '#E67E22' }]}>MANAGE MOVIES (STAFF)</Text>
+                </TouchableOpacity>
+              )}
+              
+              {user && user.role === 'staff' && (
+                <TouchableOpacity
+                  style={styles.menuItemRow}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    router.push('/manage-news');
+                  }}
+                >
+                  <Text style={[styles.menuItemText, { color: '#E67E22' }]}>MANAGE NEWS (STAFF)</Text>
                 </TouchableOpacity>
               )}
 

@@ -30,13 +30,14 @@ function resolveReleaseYear(releaseDate, releaseYear) {
 router.get('/', async (req, res) => {
   try {
     const { search, genre, year, score, status, type, trending } = req.query;
-    const filter = { visible: true };
+    const filter = { $or: [{ visible: true }, { isActive: true }] };
 
-    // US22: Quick search by title or description
     if (search && search.trim() !== '') {
       filter.$or = [
         { title: { $regex: search.trim(), $options: 'i' } },
+        { name: { $regex: search.trim(), $options: 'i' } },
         { description: { $regex: search.trim(), $options: 'i' } },
+        { summary: { $regex: search.trim(), $options: 'i' } },
       ];
     }
 
@@ -80,7 +81,20 @@ router.get('/', async (req, res) => {
       .populate('genres')
       .sort({ createdAt: -1 });
 
-    res.json(movies);
+    const mappedMovies = movies.map(m => {
+      const doc = m.toObject ? m.toObject() : m;
+      return {
+        ...doc,
+        title: doc.title || doc.name,
+        description: doc.description || doc.summary,
+        image: doc.image || doc.poster,
+        poster: doc.poster,
+        score: doc.score || doc.averageRating || 0,
+        releaseYear: doc.releaseYear || (doc.releaseDate ? new Date(doc.releaseDate).getFullYear() : 2024),
+      };
+    });
+
+    res.json(mappedMovies);
   } catch (err) {
     console.error('Get movies error:', err);
     res.status(500).json({ message: 'Server error' });
@@ -93,7 +107,21 @@ router.get('/all', auth, requireStaff, async (req, res) => {
     const movies = await Movie.find({})
       .populate('genres')
       .sort({ createdAt: -1 });
-    res.json(movies);
+    
+    const mappedMovies = movies.map(m => {
+      const doc = m.toObject ? m.toObject() : m;
+      return {
+        ...doc,
+        title: doc.title || doc.name,
+        description: doc.description || doc.summary,
+        image: doc.image || doc.poster,
+        poster: doc.poster,
+        score: doc.score || doc.averageRating || 0,
+        releaseYear: doc.releaseYear || (doc.releaseDate ? new Date(doc.releaseDate).getFullYear() : 2024),
+        visible: doc.visible !== undefined ? doc.visible : doc.isActive,
+      };
+    });
+    res.json(mappedMovies);
   } catch (err) {
     console.error('Get all movies error:', err);
     res.status(500).json({ message: 'Server error' });

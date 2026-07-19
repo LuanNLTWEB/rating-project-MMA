@@ -18,7 +18,7 @@ const genreSchema = new mongoose.Schema(
       default: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true, strict: false }
 );
 
 export default mongoose.model('Genre', genreSchema);
