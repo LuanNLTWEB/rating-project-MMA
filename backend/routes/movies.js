@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import auth from '../middleware/auth.js';
-import Movie from '../models/Movie.js';
 import Genre from '../models/Genre.js';
+import Movie from '../models/Movie.js';
 
 const router = Router();
 
-// Helper middleware — staff only (admins manage their own panel)
 function requireStaff(req, res, next) {
   if (!req.user || req.user.role !== 'staff') {
     return res.status(403).json({ message: 'Access denied. Staff role required.' });
@@ -13,7 +12,6 @@ function requireStaff(req, res, next) {
   next();
 }
 
-// Resolve a release year from a release date (or explicit year)
 function resolveReleaseYear(releaseDate, releaseYear) {
   if (releaseDate) {
     const d = new Date(releaseDate);
@@ -26,27 +24,33 @@ function resolveReleaseYear(releaseDate, releaseYear) {
   return new Date().getFullYear();
 }
 
-// US22 & US23 & US24 & US25: Get all PUBLIC movies (only visible ones)
 router.get('/', async (req, res) => {
   try {
     const { search, genre, year, score, status, type, trending } = req.query;
-    const filter = { $or: [{ visible: true }, { isActive: true }] };
+    const filter = {};
+
+    const visibilityCondition = { $or: [{ visible: true }, { isActive: true }] };
 
     if (search && search.trim() !== '') {
-      filter.$or = [
-        { title: { $regex: search.trim(), $options: 'i' } },
-        { name: { $regex: search.trim(), $options: 'i' } },
-        { description: { $regex: search.trim(), $options: 'i' } },
-        { summary: { $regex: search.trim(), $options: 'i' } },
+      filter.$and = [
+        visibilityCondition,
+        {
+          $or: [
+            { title: { $regex: search.trim(), $options: 'i' } },
+            { name: { $regex: search.trim(), $options: 'i' } },
+            { description: { $regex: search.trim(), $options: 'i' } },
+            { summary: { $regex: search.trim(), $options: 'i' } },
+          ]
+        }
       ];
+    } else {
+      filter.$or = [{ visible: true }, { isActive: true }];
     }
 
-    // US23 & US24: Filter by genre
     if (genre) {
       filter.genres = genre;
     }
 
-    // US23: Filter by release year
     if (year) {
       const yearNum = parseInt(year);
       if (!isNaN(yearNum)) {
@@ -54,7 +58,6 @@ router.get('/', async (req, res) => {
       }
     }
 
-    // US23: Filter by minimum score
     if (score) {
       const scoreNum = parseFloat(score);
       if (!isNaN(scoreNum)) {
@@ -62,17 +65,14 @@ router.get('/', async (req, res) => {
       }
     }
 
-    // US23: Filter by status
     if (status) {
       filter.status = status;
     }
 
-    // Filter by type (movie or anime)
     if (type) {
       filter.type = type;
     }
 
-    // US25: Filter by trending status
     if (trending === 'true') {
       filter.trending = true;
     }
@@ -100,14 +100,12 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
-// Get ALL movies for staff (includes hidden ones) — must be before /:id to avoid matching "all" as an ObjectId
 router.get('/all', auth, requireStaff, async (req, res) => {
   try {
     const movies = await Movie.find({})
       .populate('genres')
       .sort({ createdAt: -1 });
-    
+
     const mappedMovies = movies.map(m => {
       const doc = m.toObject ? m.toObject() : m;
       return {
@@ -128,7 +126,6 @@ router.get('/all', auth, requireStaff, async (req, res) => {
   }
 });
 
-// Get a single movie by ID (public — only visible movies)
 router.get('/:id', async (req, res) => {
   try {
     const movie = await Movie.findOne({ _id: req.params.id, visible: true }).populate('genres');
@@ -142,7 +139,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// US: Create a new movie / anime (staff only)
 router.post('/', auth, requireStaff, async (req, res) => {
   try {
     const {
@@ -166,7 +162,6 @@ router.post('/', auth, requireStaff, async (req, res) => {
       return res.status(400).json({ message: 'Movie title is required' });
     }
 
-    // Validate genres exist
     let genreIds = [];
     if (Array.isArray(genres) && genres.length > 0) {
       const found = await Genre.find({ _id: { $in: genres } });
@@ -199,7 +194,6 @@ router.post('/', auth, requireStaff, async (req, res) => {
   }
 });
 
-// US: Update movie details (staff only)
 router.put('/:id', auth, requireStaff, async (req, res) => {
   try {
     const {
@@ -263,7 +257,6 @@ router.put('/:id', auth, requireStaff, async (req, res) => {
   }
 });
 
-// US: Delete a movie (staff only)
 router.delete('/:id', auth, requireStaff, async (req, res) => {
   try {
     const movie = await Movie.findByIdAndDelete(req.params.id);
@@ -277,7 +270,6 @@ router.delete('/:id', auth, requireStaff, async (req, res) => {
   }
 });
 
-// US: Toggle visibility of a movie / anime (staff only)
 router.patch('/:id/visibility', auth, requireStaff, async (req, res) => {
   try {
     const movie = await Movie.findById(req.params.id);
@@ -296,7 +288,6 @@ router.patch('/:id/visibility', auth, requireStaff, async (req, res) => {
   }
 });
 
-// US: Upload / set poster image for a movie (staff only)
 router.patch('/:id/poster', auth, requireStaff, async (req, res) => {
   try {
     const { url } = req.body;
@@ -337,7 +328,6 @@ router.patch('/:id/banner', auth, requireStaff, async (req, res) => {
   }
 });
 
-// US: Add a trailer link (staff only)
 router.post('/:id/trailers', auth, requireStaff, async (req, res) => {
   try {
     const { label, url } = req.body;
@@ -357,7 +347,6 @@ router.post('/:id/trailers', auth, requireStaff, async (req, res) => {
   }
 });
 
-// US: Edit a trailer link (staff only)
 router.put('/:id/trailers/:trailerId', auth, requireStaff, async (req, res) => {
   try {
     const { label, url } = req.body;
@@ -382,7 +371,6 @@ router.put('/:id/trailers/:trailerId', auth, requireStaff, async (req, res) => {
   }
 });
 
-// US: Delete a trailer link (staff only)
 router.delete('/:id/trailers/:trailerId', auth, requireStaff, async (req, res) => {
   try {
     const movie = await Movie.findById(req.params.id);
