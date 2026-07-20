@@ -261,7 +261,7 @@ export default function FavoritesScreen() {
               {drawerSeasonsOpen && (
                 <View style={styles.submenuContainer}>
                   <View style={styles.submenuGrid}>
-                    {[2024, 2023, 2022, 2019, 2016, 2013, 2001].map((year) => (
+                    {[2026, 2025, 2024, 2023, 2022, 2019, 2016, 2013, 2001].map((year) => (
                       <TouchableOpacity key={year} style={styles.submenuItem} onPress={() => handleYearPress(year)}>
                         <Text style={styles.submenuItemText}>Year {year}</Text>
                       </TouchableOpacity>

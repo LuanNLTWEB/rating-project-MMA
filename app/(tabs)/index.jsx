@@ -26,6 +26,9 @@ export default function HomeScreen() {
   const [user, setUser] = useState(null);
   const [genres, setGenres] = useState([]);
   const [trendingMovies, setTrendingMovies] = useState([]);
+  const [animeList, setAnimeList] = useState([]);
+  const [movieList, setMovieList] = useState([]);
+  const [anime2026List, setAnime2026List] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,14 +55,20 @@ export default function HomeScreen() {
           }
 
           // Fetch API data in parallel
-          const [fetchedGenres, fetchedTrending] = await Promise.all([
+          const [fetchedGenres, fetchedTrending, fetchedAnime, fetchedMovies, fetchedAnime2026] = await Promise.all([
             getGenres(),
             getMovies({ trending: true }),
+            getMovies({ type: 'anime' }),
+            getMovies({ type: 'movie' }),
+            getMovies({ type: 'anime', year: 2026 }),
           ]);
 
           if (isMounted) {
             setGenres(fetchedGenres);
             setTrendingMovies(fetchedTrending);
+            setAnimeList(fetchedAnime);
+            setMovieList(fetchedMovies);
+            setAnime2026List(fetchedAnime2026);
           }
         } catch (err) {
           console.error('Home Screen Load Error:', err);
@@ -112,25 +121,25 @@ export default function HomeScreen() {
     });
   };
 
-  const renderTrendingCard = ({ item }) => {
+  const renderMovieCard = ({ item }) => {
     return (
       <TouchableOpacity
         style={styles.movieCard}
         onPress={() =>
           router.push({
-            pathname: '/explore',
-            params: { search: item.title },
+            pathname: '/movie-detail',
+            params: { id: item._id },
           })
         }
       >
         <Image
-          source={{ uri: item.image || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
+          source={{ uri: item.image || item.poster || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
           style={styles.movieImage}
           resizeMode="cover"
         />
         <View style={styles.scoreBadge}>
-          <MaterialIcons name="star" size={12} color="#FFF" />
-          <Text style={styles.scoreText}>{item.score.toFixed(1)}</Text>
+          <MaterialIcons name="star" size={12} color="#FFF" style={styles.starIcon} />
+          <Text style={styles.scoreText}>{item.score ? item.score.toFixed(1) : '0.0'}</Text>
         </View>
         <View style={styles.cardInfo}>
           <Text style={styles.movieTitle} numberOfLines={1}>
@@ -139,7 +148,7 @@ export default function HomeScreen() {
           <View style={styles.movieMeta}>
             <Text style={styles.movieYear}>{item.releaseYear}</Text>
             <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>{item.status}</Text>
+              <Text style={styles.statusText}>{item.status || 'Ongoing'}</Text>
             </View>
           </View>
         </View>
@@ -159,6 +168,8 @@ export default function HomeScreen() {
   // Find featured item (highest score trending movie, or first item)
   const featuredMovie = trendingMovies.length > 0
     ? [...trendingMovies].sort((a, b) => b.score - a.score)[0]
+    : animeList.length > 0
+    ? [...animeList].sort((a, b) => b.score - a.score)[0]
     : null;
 
   return (
@@ -268,7 +279,7 @@ export default function HomeScreen() {
         {featuredMovie && (
           <View style={styles.heroContainer}>
             <Image
-              source={{ uri: featuredMovie.image }}
+              source={{ uri: featuredMovie.image || featuredMovie.poster }}
               style={styles.heroImage}
               resizeMode="cover"
             />
@@ -286,8 +297,8 @@ export default function HomeScreen() {
                 style={styles.heroButton}
                 onPress={() =>
                   router.push({
-                    pathname: '/explore',
-                    params: { search: featuredMovie.title },
+                    pathname: '/movie-detail',
+                    params: { id: featuredMovie._id },
                   })
                 }
               >
@@ -298,15 +309,35 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Trending Anime (US25) */}
+        {/* Genre Quick Navigation Chips */}
+        {genres.length > 0 && (
+          <View style={styles.genresContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.genresScroll}>
+              {genres.map((genre) => (
+                <TouchableOpacity
+                  key={genre._id}
+                  style={styles.genreChip}
+                  onPress={() => handleGenrePress(genre)}
+                >
+                  <Text style={styles.genreChipText}>{genre.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Hot & Trending (US25) */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>🔥 Trending Anime</Text>
+          <View style={styles.sectionTitleContainer}>
+            <View style={styles.sectionIndicator} />
+            <Text style={styles.sectionTitle}>🔥 Trending Now</Text>
+          </View>
         </View>
 
         {trendingMovies.length > 0 ? (
           <FlatList
             data={trendingMovies}
-            renderItem={renderTrendingCard}
+            renderItem={renderMovieCard}
             keyExtractor={(item) => item._id}
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -315,7 +346,88 @@ export default function HomeScreen() {
         ) : (
           <View style={styles.emptyContainer}>
             <MaterialIcons name="movie-creation" size={40} color="#BCAAA4" />
-            <Text style={styles.emptySectionText}>No trending movies found</Text>
+            <Text style={styles.emptySectionText}>No trending items found</Text>
+          </View>
+        )}
+
+        {/* Summer 2026 Anime */}
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleContainer}>
+            <View style={styles.sectionIndicator} />
+            <Text style={styles.sectionTitle}>☀️ Summer 2026 Anime</Text>
+          </View>
+          <TouchableOpacity onPress={() => router.push({ pathname: '/explore', params: { type: 'anime', year: '2026' } })}>
+            <Text style={styles.seeAllText}>See All</Text>
+          </TouchableOpacity>
+        </View>
+
+        {anime2026List.length > 0 ? (
+          <FlatList
+            data={anime2026List}
+            renderItem={renderMovieCard}
+            keyExtractor={(item) => item._id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.trendingList}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <MaterialIcons name="movie-creation" size={40} color="#BCAAA4" />
+            <Text style={styles.emptySectionText}>No Summer 2026 anime found</Text>
+          </View>
+        )}
+
+        {/* Latest Anime */}
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleContainer}>
+            <View style={styles.sectionIndicator} />
+            <Text style={styles.sectionTitle}>📺 Latest Anime Series</Text>
+          </View>
+          <TouchableOpacity onPress={() => router.push({ pathname: '/explore', params: { type: 'anime' } })}>
+            <Text style={styles.seeAllText}>See All</Text>
+          </TouchableOpacity>
+        </View>
+
+        {animeList.length > 0 ? (
+          <FlatList
+            data={animeList}
+            renderItem={renderMovieCard}
+            keyExtractor={(item) => item._id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.trendingList}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <MaterialIcons name="movie-creation" size={40} color="#BCAAA4" />
+            <Text style={styles.emptySectionText}>No anime series found</Text>
+          </View>
+        )}
+
+        {/* Popular Movies */}
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleContainer}>
+            <View style={styles.sectionIndicator} />
+            <Text style={styles.sectionTitle}>🎬 Featured Movies</Text>
+          </View>
+          <TouchableOpacity onPress={() => router.push({ pathname: '/explore', params: { type: 'movie' } })}>
+            <Text style={styles.seeAllText}>See All</Text>
+          </TouchableOpacity>
+        </View>
+
+        {movieList.length > 0 ? (
+          <FlatList
+            data={movieList}
+            renderItem={renderMovieCard}
+            keyExtractor={(item) => item._id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.trendingList}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <MaterialIcons name="movie-creation" size={40} color="#BCAAA4" />
+            <Text style={styles.emptySectionText}>No movies found</Text>
           </View>
         )}
 
@@ -456,7 +568,7 @@ export default function HomeScreen() {
               {drawerSeasonsOpen && (
                 <View style={styles.submenuContainer}>
                   <View style={styles.submenuGrid}>
-                    {[2024, 2023, 2022, 2019, 2016, 2013, 2001].map((year) => (
+                    {[2026, 2025, 2024, 2023, 2022, 2019, 2016, 2013, 2001].map((year) => (
                       <TouchableOpacity
                         key={year}
                         style={styles.submenuItem}
@@ -977,4 +1089,50 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  genresContainer: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+  },
+  genresScroll: {
+    gap: 8,
+    paddingRight: 10,
+  },
+  genreChip: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8D5C4',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    shadowColor: '#2C1810',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  genreChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#D35400',
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionIndicator: {
+    width: 4,
+    height: 18,
+    backgroundColor: '#D35400',
+    borderRadius: 2,
+  },
+  seeAllText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#D35400',
+  },
+  starIcon: {
+    marginRight: 2,
+  },
 });
+

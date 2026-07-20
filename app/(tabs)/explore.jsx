@@ -1,25 +1,25 @@
-import { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  Image,
-  ActivityIndicator,
-  StatusBar,
-  ScrollView,
-  Keyboard,
-  Modal,
-  Dimensions,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { getGenres } from '@/src/services/genreService';
 import { getMovies } from '@/src/services/movieService';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Image,
+  Keyboard,
+  Modal,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -33,7 +33,12 @@ export default function ExploreScreen() {
   const [selectedYear, setSelectedYear] = useState('');
   const [minScore, setMinScore] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
-  
+
+  // Temporary filter states for draft selections in the drawer
+  const [tempYear, setTempYear] = useState('');
+  const [tempScore, setTempScore] = useState('');
+  const [tempStatus, setTempStatus] = useState('');
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 4; // 4 items per page to show pagination clearly
@@ -132,11 +137,14 @@ export default function ExploreScreen() {
   }, [searchQuery, selectedGenre, selectedYear, minScore, selectedStatus]);
 
   const handleResetFilters = () => {
-    setSearchQuery('');
-    setSelectedGenre('');
+    setTempYear('');
+    setTempScore('');
+    setTempStatus('');
     setSelectedYear('');
     setMinScore('');
     setSelectedStatus('');
+    setSearchQuery('');
+    setSelectedGenre('');
   };
 
   const handleLogout = async () => {
@@ -195,12 +203,12 @@ export default function ExploreScreen() {
             <View style={[
               styles.statusTag,
               item.status === 'Completed' ? styles.statusCompleted :
-              item.status === 'Ongoing' ? styles.statusOngoing : styles.statusUpcoming
+                item.status === 'Ongoing' ? styles.statusOngoing : styles.statusUpcoming
             ]}>
               <Text style={[
                 styles.statusTagText,
                 item.status === 'Completed' ? styles.textCompleted :
-                item.status === 'Ongoing' ? styles.textOngoing : styles.textUpcoming
+                  item.status === 'Ongoing' ? styles.textOngoing : styles.textUpcoming
               ]}>
                 {item.status}
               </Text>
@@ -209,7 +217,7 @@ export default function ExploreScreen() {
 
           {/* Genre list tags */}
           <View style={styles.genresList}>
-            {item.genres.map((g) => (
+            {item.genres && Array.isArray(item.genres) && item.genres.map((g) => (
               <View key={g._id} style={styles.genreMiniTag}>
                 <Text style={styles.genreMiniText}>{g.name}</Text>
               </View>
@@ -275,7 +283,7 @@ export default function ExploreScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFF8F0" />
-      
+
       {/* Single Row Header: Team Logo | Search Input | Hamburger Menu (Consistent with Home) */}
       <View style={styles.singleRowHeader}>
         <TouchableOpacity onPress={() => router.push('/(tabs)')}>
@@ -320,6 +328,11 @@ export default function ExploreScreen() {
             style={[styles.filterPill, showFilters && styles.filterPillActive]}
             onPress={() => {
               Keyboard.dismiss();
+              if (!showFilters) {
+                setTempYear(selectedYear);
+                setTempScore(minScore);
+                setTempStatus(selectedStatus);
+              }
               setShowFilters(!showFilters);
             }}
           >
@@ -354,7 +367,7 @@ export default function ExploreScreen() {
         </ScrollView>
       </View>
 
-      {/* Advanced Filter Drawer (US23) */}
+      {/* Advanced Filter Drawer */}
       {showFilters && (
         <View style={styles.filterDrawer}>
           <ScrollView nestedScrollEnabled={true} style={styles.filterDrawerScroll}>
@@ -367,8 +380,8 @@ export default function ExploreScreen() {
                   placeholder="e.g. 2024"
                   placeholderTextColor="#BCAAA4"
                   keyboardType="numeric"
-                  value={selectedYear}
-                  onChangeText={setSelectedYear}
+                  value={tempYear}
+                  onChangeText={setTempYear}
                 />
               </View>
 
@@ -380,8 +393,8 @@ export default function ExploreScreen() {
                   placeholder="e.g. 8.5"
                   placeholderTextColor="#BCAAA4"
                   keyboardType="decimal-pad"
-                  value={minScore}
-                  onChangeText={setMinScore}
+                  value={tempScore}
+                  onChangeText={setTempScore}
                 />
               </View>
             </View>
@@ -390,12 +403,12 @@ export default function ExploreScreen() {
             <Text style={styles.filterLabel}>Status</Text>
             <View style={styles.statusButtonsRow}>
               {['Upcoming', 'Ongoing', 'Completed'].map((status) => {
-                const isSelected = selectedStatus === status;
+                const isSelected = tempStatus === status;
                 return (
                   <TouchableOpacity
                     key={status}
                     style={[styles.statusBtn, isSelected && styles.statusBtnSelected]}
-                    onPress={() => setSelectedStatus(isSelected ? '' : status)}
+                    onPress={() => setTempStatus(isSelected ? '' : status)}
                   >
                     <Text style={[styles.statusBtnText, isSelected && styles.statusBtnTextActive]}>
                       {status}
@@ -411,7 +424,15 @@ export default function ExploreScreen() {
                 <MaterialIcons name="refresh" size={16} color="#8D6E63" />
                 <Text style={styles.resetBtnText}>Reset Filters</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.applyBtn} onPress={() => setShowFilters(false)}>
+              <TouchableOpacity
+                style={styles.applyBtn}
+                onPress={() => {
+                  setSelectedYear(tempYear);
+                  setMinScore(tempScore);
+                  setSelectedStatus(tempStatus);
+                  setShowFilters(false);
+                }}
+              >
                 <Text style={styles.applyBtnText}>Apply</Text>
               </TouchableOpacity>
             </View>
@@ -463,7 +484,7 @@ export default function ExploreScreen() {
             activeOpacity={1}
             onPress={() => setMenuVisible(false)}
           />
-          
+
           {/* Drawer Panel */}
           <View style={styles.drawerPanel}>
             {/* Profile Card Header */}
@@ -485,7 +506,7 @@ export default function ExploreScreen() {
 
             {/* Menu Items List */}
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.drawerScroll}>
-              
+
               {/* HOME */}
               <TouchableOpacity
                 style={styles.menuItemRow}
@@ -533,7 +554,7 @@ export default function ExploreScreen() {
                   color="#FFF"
                 />
               </TouchableOpacity>
-              
+
               {/* Toggleable Genre Grid */}
               {drawerGenresOpen && (
                 <View style={styles.submenuContainer}>
@@ -573,7 +594,7 @@ export default function ExploreScreen() {
               {drawerSeasonsOpen && (
                 <View style={styles.submenuContainer}>
                   <View style={styles.submenuGrid}>
-                    {[2024, 2023, 2022, 2019, 2016, 2013, 2001].map((year) => (
+                    {[2026, 2025, 2024, 2023, 2022, 2019, 2016, 2013, 2001].map((year) => (
                       <TouchableOpacity
                         key={year}
                         style={styles.submenuItem}
