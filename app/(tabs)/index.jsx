@@ -233,6 +233,13 @@ export default function HomeScreen() {
                 <Text style={styles.staffButtonText}>Manage News</Text>
                 <MaterialIcons name="chevron-right" size={18} color="#FFFFFF" />
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.staffButton, { marginTop: 8 }]}
+                onPress={() => router.push('/manage-reports')}
+              >
+                <Text style={styles.staffButtonText}>Manage Comments</Text>
+                <MaterialIcons name="chevron-right" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -484,6 +491,18 @@ export default function HomeScreen() {
                   }}
                 >
                   <Text style={[styles.menuItemText, { color: '#E67E22' }]}>MANAGE MOVIES (STAFF)</Text>
+                </TouchableOpacity>
+              )}
+
+              {user && user.role === 'staff' && (
+                <TouchableOpacity
+                  style={styles.menuItemRow}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    router.push('/manage-reports');
+                  }}
+                >
+                  <Text style={[styles.menuItemText, { color: '#E67E22' }]}>MANAGE COMMENTS (STAFF)</Text>
                 </TouchableOpacity>
               )}
               

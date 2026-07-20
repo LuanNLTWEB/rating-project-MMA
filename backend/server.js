@@ -11,6 +11,8 @@ import favoriteRoutes from './routes/favorites.js';
 import watchlistRoutes from './routes/watchlist.js';
 import profileRoutes from './routes/profile.js';
 import newsRoutes from './routes/news.js';
+import reviewRoutes from './routes/reviews.js';
+import reportRoutes from './routes/reports.js';
 
 dotenv.config();
 
@@ -28,6 +30,8 @@ app.use('/api/favorites', favoriteRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/news', newsRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/reports', reportRoutes);
 
 app.get('/api', (_req, res) => {
   res.json({ message: 'Movie & Anime API' });
@@ -44,3 +48,5 @@ mongoose
     console.error('MongoDB connection error:', err);
     process.exit(1);
   });
+
+app.use((req, res, next) => { console.log(req.method + ' ' + req.originalUrl); next(); });

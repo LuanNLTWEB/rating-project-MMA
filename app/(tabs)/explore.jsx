@@ -611,6 +611,18 @@ export default function ExploreScreen() {
                 </TouchableOpacity>
               )}
 
+              {user && user.role === 'staff' && (
+                <TouchableOpacity
+                  style={styles.menuItemRow}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    router.push('/manage-reports');
+                  }}
+                >
+                  <Text style={[styles.menuItemText, { color: '#E67E22' }]}>MANAGE COMMENTS (STAFF)</Text>
+                </TouchableOpacity>
+              )}
+
               {/* ADMIN PANEL — only for admin */}
               {user && user.role === 'admin' && (
                 <TouchableOpacity
