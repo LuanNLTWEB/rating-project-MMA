@@ -97,6 +97,13 @@ export default function ProfileScreen() {
     if (!DATE_REGEX.test(dateOfBirth)) return 'Invalid date format';
     const dobYear = parseInt(dateOfBirth.split('-')[0]);
     if (dobYear < 1900 || dobYear > new Date().getFullYear()) return 'Invalid year';
+    const parts = dateOfBirth.split('-').map(Number);
+    const dob = new Date(parts[0], parts[1] - 1, parts[2]);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    if (age < 13) return 'You must be at least 13 years old';
     if (!phone.trim()) return 'Phone number is required';
     if (!PHONE_REGEX.test(phone.trim().replace(/\s/g, ''))) return 'Invalid phone number';
     if (newPassword && newPassword.length < 6) return 'New password must be at least 6 characters';
