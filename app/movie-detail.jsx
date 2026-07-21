@@ -40,7 +40,7 @@ export default function MovieDetailScreen() {
   const [reviews, setReviews] = useState([]);
   const [user, setUser] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewRating, setReviewRating] = useState(1);
   const [reviewText, setReviewText] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
@@ -155,7 +155,7 @@ export default function MovieDetailScreen() {
       }
       setShowReviewModal(false);
       setReviewText('');
-      setReviewRating(5);
+      setReviewRating(1);
       setEditingReviewId(null);
       const updatedReviews = await getMovieReviews(id);
       setReviews(updatedReviews);
@@ -456,7 +456,7 @@ export default function MovieDetailScreen() {
                   }
                   setEditingReviewId(null);
                   setReviewText('');
-                  setReviewRating(5);
+                  setReviewRating(1);
                   setShowReviewModal(true);
                 }}>
                   <MaterialIcons name="edit" size={16} color="#FFF" />
@@ -554,7 +554,7 @@ export default function MovieDetailScreen() {
                 await handleWlSelect('watching');
                 setEditingReviewId(null);
                 setReviewText('');
-                setReviewRating(5);
+                setReviewRating(1);
                 setShowReviewModal(true);
               }}
             >
@@ -568,7 +568,7 @@ export default function MovieDetailScreen() {
                 await handleWlSelect('completed');
                 setEditingReviewId(null);
                 setReviewText('');
-                setReviewRating(5);
+                setReviewRating(1);
                 setShowReviewModal(true);
               }}
             >
