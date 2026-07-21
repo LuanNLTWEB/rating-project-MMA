@@ -58,9 +58,9 @@ export default function HomeScreen() {
           const [fetchedGenres, fetchedTrending, fetchedAnime, fetchedMovies, fetchedAnime2026] = await Promise.all([
             getGenres(),
             getMovies({ trending: true }),
-            getMovies({ type: 'anime' }),
+            getMovies({ type: 'tv series' }),
             getMovies({ type: 'movie' }),
-            getMovies({ type: 'anime', year: 2026 }),
+            getMovies({ type: 'tv series', year: 2026 }),
           ]);
 
           if (isMounted) {
@@ -133,13 +133,13 @@ export default function HomeScreen() {
         }
       >
         <Image
-          source={{ uri: item.poster || item.image || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
+          source={{ uri: item.poster || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
           style={styles.movieImage}
           resizeMode="cover"
         />
         <View style={styles.scoreBadge}>
           <MaterialIcons name="star" size={12} color="#FFF" style={styles.starIcon} />
-          <Text style={styles.scoreText}>{item.score ? item.score.toFixed(1) : 'N/A'}</Text>
+          <Text style={styles.scoreText}>{item.score > 0 ? `${item.score.toFixed(1)}/5` : 'N/A'}</Text>
         </View>
         <View style={styles.cardInfo}>
           <Text style={styles.movieTitle} numberOfLines={1}>
@@ -148,7 +148,7 @@ export default function HomeScreen() {
           <View style={styles.movieMeta}>
             <Text style={styles.movieYear}>{item.releaseYear}</Text>
             <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>{item.status || 'Ongoing'}</Text>
+              <Text style={styles.statusText}>{item.status || 'ongoing'}</Text>
             </View>
           </View>
         </View>
@@ -279,7 +279,7 @@ export default function HomeScreen() {
         {featuredMovie && (
           <View style={styles.heroContainer}>
             <Image
-              source={{ uri: featuredMovie.poster || featuredMovie.image || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
+              source={{ uri: featuredMovie.poster || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
               style={styles.heroImage}
               resizeMode="cover"
             />
@@ -356,7 +356,7 @@ export default function HomeScreen() {
             <View style={styles.sectionIndicator} />
             <Text style={styles.sectionTitle}>☀️ Summer 2026 Anime</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push({ pathname: '/explore', params: { type: 'anime', year: '2026' } })}>
+          <TouchableOpacity onPress={() => router.push({ pathname: '/explore', params: { type: 'tv series', year: '2026' } })}>
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
@@ -383,7 +383,7 @@ export default function HomeScreen() {
             <View style={styles.sectionIndicator} />
             <Text style={styles.sectionTitle}>📺 Latest Anime Series</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push({ pathname: '/explore', params: { type: 'anime' } })}>
+          <TouchableOpacity onPress={() => router.push({ pathname: '/explore', params: { type: 'tv series' } })}>
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>

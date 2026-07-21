@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import auth from '../middleware/auth.js';
 import Review from '../models/Review.js';
 import Movie from '../models/Movie.js';
@@ -17,7 +18,7 @@ function requireStaff(req, res, next) {
 // Helper to update movie rating and review count
 const updateMovieRating = async (movieId) => {
   const stats = await Review.aggregate([
-    { $match: { movie: movieId } },
+    { $match: { movie: new mongoose.Types.ObjectId(movieId) } },
     { $group: { _id: null, avgRating: { $avg: "$overallRating" }, count: { $sum: 1 } } },
   ]);
   const avg = stats.length > 0 ? Math.round(stats[0].avgRating * 10) / 10 : 0;
@@ -28,14 +29,15 @@ const updateMovieRating = async (movieId) => {
 router.post('/movie/:movieId', auth, async (req, res) => {
   try {
     const { movieId } = req.params;
-    const { overallRating, bodyText, containsSpoiler, recommendation } = req.body;
+    const { overallRating, bodyText: rawBodyText, containsSpoiler, recommendation } = req.body;
+    const bodyText = rawBodyText?.trim();
     const userId = req.user.id; // from JWT payload
 
     // Basic validation
-    if (!bodyText || bodyText.trim().length === 0) {
+    if (!bodyText) {
       return res.status(400).json({ message: 'Review body cannot be empty.' });
     }
-    if (bodyText.trim().length > 10000) {
+    if (bodyText.length > 10000) {
       return res.status(400).json({ message: 'Review must not exceed 10000 characters.' });
     }
     if (!overallRating || overallRating < 1 || overallRating > 5) {
@@ -56,7 +58,7 @@ router.post('/movie/:movieId', auth, async (req, res) => {
       user: userId,
       movie: movieId,
       overallRating,
-      bodyText: bodyText.trim(),
+      bodyText,
       containsSpoiler: containsSpoiler || false,
       recommendation,
     });
@@ -76,7 +78,8 @@ router.post('/movie/:movieId', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { overallRating, bodyText, containsSpoiler, recommendation } = req.body;
+    const { overallRating, bodyText: rawBodyText, containsSpoiler, recommendation } = req.body;
+    const bodyText = rawBodyText?.trim();
     const userId = req.user.id;
 
     const review = await Review.findById(id);
@@ -92,22 +95,21 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Maximum edit limit (3 times) reached.' });
     }
 
-    if (bodyText && bodyText.trim() !== review.bodyText) {
-      const trimmedText = bodyText.trim();
-      if (trimmedText.length > 10000) {
+    if (bodyText && bodyText !== review.bodyText) {
+      if (bodyText.length > 10000) {
         return res.status(400).json({ message: 'Review must not exceed 10000 characters.' });
       }
-      
+
       review.editHistory.push({
         bodyText: review.bodyText,
         editedAt: new Date()
       });
       review.isEdited = true;
-      review.bodyText = trimmedText;
+      review.bodyText = bodyText;
     }
 
-    if (overallRating) review.overallRating = overallRating;
-    if (recommendation) review.recommendation = recommendation;
+    if (typeof overallRating !== 'undefined') review.overallRating = overallRating;
+    if ('recommendation' in req.body) review.recommendation = req.body.recommendation || null;
     if (typeof containsSpoiler !== 'undefined') review.containsSpoiler = containsSpoiler;
 
     await review.save();
@@ -151,8 +153,8 @@ router.delete('/:id', auth, async (req, res) => {
 router.get('/all', auth, requireStaff, async (req, res) => {
   try {
     const reviews = await Review.find()
-      .populate('user', 'name username email role avatar')
-      .populate('movie', 'title titleEnglish')
+      .populate('user', 'name email role avatar')
+      .populate('movie', 'name title')
       .sort({ createdAt: -1 })
       .limit(200); // Limit to recent 200 for performance
     res.json(reviews);

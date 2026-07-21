@@ -153,7 +153,7 @@ export default function UserProfileScreen() {
           {movie.score > 0 && (
             <View style={styles.movieRating}>
               <MaterialIcons name="star" size={12} color="#F4C430" />
-              <Text style={styles.movieRatingText}>{movie.score}</Text>
+              <Text style={styles.movieRatingText}>{movie.score.toFixed(1)}/5</Text>
             </View>
           )}
           {movie.year && <Text style={styles.movieYear}>{movie.year}</Text>}

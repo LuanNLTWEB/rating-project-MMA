@@ -21,14 +21,13 @@ const reviewSchema = new mongoose.Schema(
     bodyText: {
       type: String,
       required: true,
-    },
-    isPreliminary: {
-      type: Boolean,
-      default: false,
+      trim: true,
+      maxlength: 10000,
     },
     recommendation: {
       type: String,
       enum: ['recommended', 'mixed', 'not_recommended'],
+      default: null,
     },
     containsSpoiler: {
       type: Boolean,

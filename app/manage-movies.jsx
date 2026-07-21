@@ -34,8 +34,8 @@ import {
 } from '@/src/services/movieService';
 import { getGenres } from '@/src/services/genreService';
 
-const TYPES = ['anime', 'movie'];
-const STATUSES = ['Upcoming', 'Ongoing', 'Completed'];
+const TYPES = ['ova', 'movie', 'tv series', 'specials'];
+const STATUSES = ['upcoming', 'ongoing', 'completed'];
 
 function formatDate(date) {
   const d = new Date(date);
@@ -58,14 +58,18 @@ export default function ManageMoviesScreen() {
   const [selectedMovie, setSelectedMovie] = useState(null);
 
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [type, setType] = useState('anime');
+  const [type, setType] = useState('tv series');
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [releaseDate, setReleaseDate] = useState(formatDate(new Date()));
-  const [episodes, setEpisodes] = useState('');
-  const [status, setStatus] = useState('Ongoing');
+  const [totalEpisodes, setTotalEpisodes] = useState('');
+  const [status, setStatus] = useState('ongoing');
   const [poster, setPoster] = useState('');
   const [banner, setBanner] = useState('');
+  const [summary, setSummary] = useState('');
+  const [authors, setAuthors] = useState('');
+  const [producers, setProducers] = useState('');
+  const [studios, setStudios] = useState('');
+  const [trending, setTrending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -124,14 +128,18 @@ export default function ManageMoviesScreen() {
 
   const resetForm = () => {
     setTitle('');
-    setDescription('');
-    setType('anime');
+    setSummary('');
+    setType('tv series');
     setSelectedGenres([]);
     setReleaseDate(formatDate(new Date()));
-    setEpisodes('');
-    setStatus('Ongoing');
+    setTotalEpisodes('');
+    setStatus('ongoing');
     setPoster('');
     setBanner('');
+    setAuthors('');
+    setProducers('');
+    setStudios('');
+    setTrending(false);
     setFormError('');
   };
 
@@ -146,17 +154,21 @@ export default function ManageMoviesScreen() {
   const openEditModal = (movie) => {
     setModalMode('edit');
     setSelectedMovie(movie);
-    setTitle(movie.title || '');
-    setDescription(movie.description || '');
-    setType(movie.type || 'anime');
+    setTitle(movie.title || movie.name || '');
+    setSummary(movie.summary || '');
+    setType(movie.type || 'tv series');
     setSelectedGenres((movie.genres || []).map((g) => (g._id ? g._id : g)));
     setReleaseDate(
-      movie.releaseDate ? formatDate(movie.releaseDate) : movie.releaseYear ? `${movie.releaseYear}-01-01` : formatDate(new Date())
+      movie.releaseDate ? formatDate(movie.releaseDate) : formatDate(new Date())
     );
-    setEpisodes(movie.episodes !== undefined ? String(movie.episodes) : '');
-    setStatus(movie.status || 'Ongoing');
-    setPoster(movie.poster || movie.image || '');
+    setTotalEpisodes(movie.totalEpisodes !== undefined ? String(movie.totalEpisodes) : '');
+    setStatus(movie.status || 'ongoing');
+    setPoster(movie.poster || '');
     setBanner(movie.banner || '');
+    setAuthors((movie.authors || []).join(', '));
+    setProducers((movie.producers || []).join(', '));
+    setStudios((movie.studios || []).join(', '));
+    setTrending(movie.trending || false);
     setCurrentTrailers(movie.trailers || []);
     setFormError('');
     setModalVisible(true);
@@ -178,14 +190,19 @@ export default function ManageMoviesScreen() {
     setSubmitting(true);
     const payload = {
       title: title.trim(),
-      description: description.trim(),
+      name: title.trim(),
+      summary: summary.trim(),
       type,
       genres: selectedGenres,
       releaseDate,
-      episodes: episodes ? Number(episodes) : 0,
+      totalEpisodes: totalEpisodes ? Number(totalEpisodes) : 0,
       status,
       poster,
       banner,
+      authors: authors.split(',').map(s => s.trim()).filter(Boolean),
+      producers: producers.split(',').map(s => s.trim()).filter(Boolean),
+      studios: studios.split(',').map(s => s.trim()).filter(Boolean),
+      trending,
     };
     try {
       if (modalMode === 'create') {
@@ -283,11 +300,11 @@ export default function ManageMoviesScreen() {
     setTrailerModalVisible(true);
   };
 
-  const openEditTrailer = (trailer) => {
+  const openEditTrailer = (index) => {
     setTrailerMode('edit');
-    setEditingTrailerId(trailer._id);
-    setTrailerLabel(trailer.label || '');
-    setTrailerUrl(trailer.url || '');
+    setEditingTrailerId(String(index));
+    setTrailerLabel('');
+    setTrailerUrl(currentTrailers[index] || '');
     setTrailerFormError('');
     setTrailerModalVisible(true);
   };
@@ -300,7 +317,7 @@ export default function ManageMoviesScreen() {
     }
     setSavingTrailer(true);
     try {
-      const data = { label: trailerLabel.trim(), url: trailerUrl.trim() };
+      const data = { url: trailerUrl.trim() };
       const res =
         trailerMode === 'add'
           ? await addTrailer(selectedMovie._id, data)
@@ -316,7 +333,7 @@ export default function ManageMoviesScreen() {
     }
   };
 
-  const handleDeleteTrailer = (trailer) => {
+  const handleDeleteTrailer = (index) => {
     Alert.alert('Delete Trailer', 'Remove this trailer link?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -324,7 +341,7 @@ export default function ManageMoviesScreen() {
         style: 'destructive',
         onPress: async () => {
           try {
-            const res = await deleteTrailer(selectedMovie._id, trailer._id);
+            const res = await deleteTrailer(selectedMovie._id, String(index));
             setSelectedMovie(res.movie);
             setCurrentTrailers(res.movie.trailers);
           } catch (err) {
@@ -342,7 +359,6 @@ export default function ManageMoviesScreen() {
         source={{
           uri:
             item.poster ||
-            item.image ||
             'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60',
         }}
         style={styles.cardThumb}
@@ -361,13 +377,13 @@ export default function ManageMoviesScreen() {
         </View>
         <View style={styles.cardMetaRow}>
           <View style={styles.typeTag}>
-            <Text style={styles.typeTagText}>{item.type.toUpperCase()}</Text>
+            <Text style={styles.typeTagText}>{item.type?.toUpperCase()}</Text>
           </View>
           <Text style={styles.cardStatus}>{item.status}</Text>
-          {item.episodes ? <Text style={styles.cardEp}>• {item.episodes} eps</Text> : null}
+          {item.totalEpisodes ? <Text style={styles.cardEp}>• {item.totalEpisodes} eps</Text> : null}
         </View>
         <Text style={styles.cardYear}>
-          Released: {item.releaseDate ? formatDate(item.releaseDate) : item.releaseYear}
+          Released: {item.releaseDate ? formatDate(item.releaseDate) : ''}
         </Text>
         {item.trailers && item.trailers.length > 0 ? (
           <Text style={styles.cardTrailers}>{item.trailers.length} trailer(s)</Text>
@@ -451,7 +467,7 @@ export default function ManageMoviesScreen() {
               <TextInput style={styles.textInput} placeholder="Movie / Anime title" placeholderTextColor="#BCAAA4" value={title} onChangeText={setTitle} />
 
               <Text style={styles.inputLabel}>Summary</Text>
-              <TextInput style={[styles.textInput, styles.textArea]} placeholder="Short description..." placeholderTextColor="#BCAAA4" value={description} onChangeText={setDescription} multiline numberOfLines={3} />
+              <TextInput style={[styles.textInput, styles.textArea]} placeholder="Short summary..." placeholderTextColor="#BCAAA4" value={summary} onChangeText={setSummary} multiline numberOfLines={2} />
 
               <Text style={styles.inputLabel}>Type</Text>
               <View style={styles.segmentRow}>
@@ -475,6 +491,15 @@ export default function ManageMoviesScreen() {
                 {genres.length === 0 ? <Text style={styles.hint}>No genres available</Text> : null}
               </View>
 
+              <Text style={styles.inputLabel}>Authors (comma separated)</Text>
+              <TextInput style={styles.textInput} placeholder="Author 1, Author 2, ..." placeholderTextColor="#BCAAA4" value={authors} onChangeText={setAuthors} />
+
+              <Text style={styles.inputLabel}>Producers (comma separated)</Text>
+              <TextInput style={styles.textInput} placeholder="Producer 1, Producer 2, ..." placeholderTextColor="#BCAAA4" value={producers} onChangeText={setProducers} />
+
+              <Text style={styles.inputLabel}>Studios (comma separated)</Text>
+              <TextInput style={styles.textInput} placeholder="Studio 1, Studio 2, ..." placeholderTextColor="#BCAAA4" value={studios} onChangeText={setStudios} />
+
               <Text style={styles.inputLabel}>Release Date</Text>
               <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
                 <MaterialIcons name="calendar-today" size={18} color="#8D6E63" />
@@ -495,7 +520,7 @@ export default function ManageMoviesScreen() {
               <View style={styles.row}>
                 <View style={styles.col}>
                   <Text style={styles.inputLabel}>Episodes</Text>
-                  <TextInput style={styles.textInput} placeholder="0" placeholderTextColor="#BCAAA4" value={episodes} onChangeText={setEpisodes} keyboardType="numeric" />
+                  <TextInput style={styles.textInput} placeholder="0" placeholderTextColor="#BCAAA4" value={totalEpisodes} onChangeText={setTotalEpisodes} keyboardType="numeric" />
                 </View>
                 <View style={styles.col}>
                   <Text style={styles.inputLabel}>Status</Text>
@@ -507,6 +532,22 @@ export default function ManageMoviesScreen() {
                     ))}
                   </View>
                 </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                <TouchableOpacity
+                  onPress={() => setTrending(!trending)}
+                  style={[
+                    styles.segment,
+                    { flex: 0, paddingHorizontal: 16, paddingVertical: 10 },
+                    trending && { backgroundColor: '#D35400', borderColor: '#D35400' },
+                  ]}
+                >
+                  <MaterialIcons name="trending-up" size={18} color={trending ? '#FFF' : '#2C1810'} />
+                  <Text style={[styles.segmentText, trending && styles.segmentTextActive, { marginLeft: 4 }]}>
+                    Trending
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               {/* Poster */}
@@ -543,17 +584,17 @@ export default function ManageMoviesScreen() {
                   {currentTrailers.length === 0 ? (
                     <Text style={styles.hint}>No trailers yet.</Text>
                   ) : (
-                    currentTrailers.map((t) => (
-                      <View key={t._id} style={styles.trailerItem}>
+                    currentTrailers.map((url, idx) => (
+                      <View key={idx} style={styles.trailerItem}>
                         <View style={styles.trailerInfo}>
-                          <Text style={styles.trailerLabel} numberOfLines={1}>{t.label || 'Trailer'}</Text>
-                          <Text style={styles.trailerUrl} numberOfLines={1}>{t.url}</Text>
+                          <Text style={styles.trailerLabel} numberOfLines={1}>Trailer {idx + 1}</Text>
+                          <Text style={styles.trailerUrl} numberOfLines={1}>{url}</Text>
                         </View>
                         <View style={styles.trailerActions}>
-                          <TouchableOpacity style={styles.trailerEdit} onPress={() => openEditTrailer(t)}>
+                          <TouchableOpacity style={styles.trailerEdit} onPress={() => openEditTrailer(idx)}>
                             <MaterialIcons name="edit" size={18} color="#D35400" />
                           </TouchableOpacity>
-                          <TouchableOpacity style={styles.trailerDelete} onPress={() => handleDeleteTrailer(t)}>
+                          <TouchableOpacity style={styles.trailerDelete} onPress={() => handleDeleteTrailer(idx)}>
                             <MaterialIcons name="delete" size={18} color="#C0392B" />
                           </TouchableOpacity>
                         </View>
@@ -590,9 +631,6 @@ export default function ManageMoviesScreen() {
             </View>
 
             <View style={styles.modalBody}>
-              <Text style={styles.inputLabel}>Label (optional)</Text>
-              <TextInput style={styles.textInput} placeholder="Official Trailer" placeholderTextColor="#BCAAA4" value={trailerLabel} onChangeText={setTrailerLabel} />
-
               <Text style={styles.inputLabel}>Trailer URL *</Text>
               <TextInput style={styles.textInput} placeholder="https://youtube.com/..." placeholderTextColor="#BCAAA4" value={trailerUrl} onChangeText={setTrailerUrl} autoCapitalize="none" />
               {trailerFormError ? <Text style={styles.formErrorText}>{trailerFormError}</Text> : null}

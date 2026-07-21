@@ -1,7 +1,7 @@
 import { getMovie } from '@/src/services/movieService';
 import { addFavorite, removeFavorite, getFavoriteIds } from '@/src/services/favoriteService';
 import { addToWatchlist, removeFromWatchlist, getWatchlistIds, updateWatchStatus } from '@/src/services/watchlistService';
-import { getMovieReviews, createReview, deleteReview, updateReview } from '@/src/services/reviewService';
+import { getMovieReviews, createReview, deleteReview, updateReview, reactToReview } from '@/src/services/reviewService';
 import { reportReview } from '@/src/services/reportService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -42,6 +42,8 @@ export default function MovieDetailScreen() {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(1);
   const [reviewText, setReviewText] = useState('');
+  const [reviewSpoiler, setReviewSpoiler] = useState(false);
+  const [reviewRecommendation, setReviewRecommendation] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [selectedReviewId, setSelectedReviewId] = useState(null);
@@ -145,17 +147,25 @@ export default function MovieDetailScreen() {
 
   const handleSubmitReview = async () => {
     if (!reviewText.trim()) return Alert.alert('Error', 'Review text cannot be empty');
+    const payload = {
+      overallRating: reviewRating,
+      bodyText: reviewText,
+      containsSpoiler: reviewSpoiler,
+      recommendation: reviewRecommendation || undefined,
+    };
     try {
       if (editingReviewId) {
-        await updateReview(editingReviewId, { overallRating: reviewRating, bodyText: reviewText });
+        await updateReview(editingReviewId, payload);
         Alert.alert('Success', 'Review updated successfully');
       } else {
-        await createReview(id, { overallRating: reviewRating, bodyText: reviewText });
+        await createReview(id, payload);
         Alert.alert('Success', 'Review added successfully');
       }
       setShowReviewModal(false);
       setReviewText('');
       setReviewRating(1);
+      setReviewSpoiler(false);
+      setReviewRecommendation('');
       setEditingReviewId(null);
       const updatedReviews = await getMovieReviews(id);
       setReviews(updatedReviews);
@@ -172,6 +182,8 @@ export default function MovieDetailScreen() {
     setEditingReviewId(review._id);
     setReviewRating(review.overallRating);
     setReviewText(review.bodyText);
+    setReviewSpoiler(review.containsSpoiler || false);
+    setReviewRecommendation(review.recommendation || '');
     setShowReviewModal(true);
   };
 
@@ -203,6 +215,16 @@ export default function MovieDetailScreen() {
       Alert.alert('Success', 'Report submitted successfully');
     } catch (err) {
       Alert.alert('Error', err?.response?.data?.message || 'Failed to submit report');
+    }
+  };
+
+  const handleReact = async (reviewId, type) => {
+    try {
+      const res = await reactToReview(reviewId, type);
+      setReviews(reviews.map(r => r._id === reviewId ? res.review : r));
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Failed to react';
+      Alert.alert('Error', msg);
     }
   };
 
@@ -249,8 +271,8 @@ export default function MovieDetailScreen() {
     );
   }
 
-  const bannerUri = movie.banner || movie.poster || movie.image || '';
-  const posterUri = movie.poster || movie.image || '';
+  const bannerUri = movie.banner || movie.poster || '';
+  const posterUri = movie.poster || '';
 
   const openTrailer = (url) => {
     Linking.openURL(url).catch(() => {});
@@ -279,6 +301,14 @@ export default function MovieDetailScreen() {
           <View style={styles.typeBadge}>
             <Text style={styles.typeText}>{movie.type?.toUpperCase()}</Text>
           </View>
+
+          {/* Trending badge */}
+          {movie.trending ? (
+            <View style={styles.trendingBadge}>
+              <MaterialIcons name="trending-up" size={14} color="#FFF" />
+              <Text style={styles.trendingText}>TRENDING</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Content */}
@@ -297,13 +327,18 @@ export default function MovieDetailScreen() {
                 <Text style={styles.yearText}>{movie.releaseYear}</Text>
                 <View style={[
                   styles.statusTag,
-                  movie.status === 'Completed' ? styles.statusCompleted :
-                  movie.status === 'Ongoing' ? styles.statusOngoing : styles.statusUpcoming,
+                  movie.status === 'completed' ? styles.statusCompleted :
+                  movie.status === 'ongoing' ? styles.statusOngoing : styles.statusUpcoming,
                 ]}>
+                  <MaterialIcons
+                    name={movie.status === 'completed' ? 'check-circle' : movie.status === 'ongoing' ? 'autorenew' : 'schedule'}
+                    size={12}
+                    color={movie.status === 'completed' ? '#16A085' : movie.status === 'ongoing' ? '#2980B9' : '#D4AC0D'}
+                  />
                   <Text style={[
                     styles.statusTagText,
-                    movie.status === 'Completed' ? styles.textCompleted :
-                    movie.status === 'Ongoing' ? styles.textOngoing : styles.textUpcoming,
+                    movie.status === 'completed' ? styles.textCompleted :
+                    movie.status === 'ongoing' ? styles.textOngoing : styles.textUpcoming,
                   ]}>
                     {movie.status}
                   </Text>
@@ -313,15 +348,25 @@ export default function MovieDetailScreen() {
               {/* Score */}
               <View style={styles.scoreRow}>
                 <MaterialIcons name="star" size={28} color="#D35400" />
-                <Text style={styles.scoreText}>{movie.score ? movie.score.toFixed(1) : 'N/A'}</Text>
-                {movie.score > 0 && <Text style={styles.scoreMax}>/ 5</Text>}
+                <Text style={styles.scoreText}>
+                  {movie.score > 0 ? movie.score.toFixed(1) : 'N/A'}
+                </Text>
+                {movie.score > 0 && (
+                  <Text style={styles.scoreMax}>/5</Text>
+                )}
               </View>
 
+              {movie.reviewCount > 0 ? (
+                <Text style={{ fontSize: 12, color: '#BCAAA4', marginTop: 2 }}>
+                  {movie.score > 0 ? movie.score.toFixed(1) : 'N/A'}/5 from {movie.reviewCount} review{movie.reviewCount > 1 ? 's' : ''}
+                </Text>
+              ) : null}
+
               {/* Episodes */}
-              {movie.episodes > 0 ? (
+              {movie.totalEpisodes > 0 ? (
                 <View style={styles.episodesRow}>
                   <MaterialIcons name="movie" size={16} color="#8D6E63" />
-                  <Text style={styles.episodesText}>{movie.episodes} episodes</Text>
+                  <Text style={styles.episodesText}>{movie.totalEpisodes} episodes</Text>
                 </View>
               ) : null}
 
@@ -336,6 +381,22 @@ export default function MovieDetailScreen() {
                   </Text>
                 </View>
               ) : null}
+
+              {/* Stats */}
+              <View style={styles.statsRow}>
+                {movie.viewCount > 0 ? (
+                  <View style={styles.statItem}>
+                    <MaterialIcons name="visibility" size={14} color="#8D6E63" />
+                    <Text style={styles.statText}>{movie.viewCount}</Text>
+                  </View>
+                ) : null}
+                {movie.memberCount > 0 ? (
+                  <View style={styles.statItem}>
+                    <MaterialIcons name="people" size={14} color="#8D6E63" />
+                    <Text style={styles.statText}>{movie.memberCount}</Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
           </View>
 
@@ -412,11 +473,35 @@ export default function MovieDetailScreen() {
             </View>
           ) : null}
 
-          {/* Description */}
-          {movie.description ? (
+          {/* Summary */}
+          {movie.summary ? (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Description</Text>
-              <Text style={styles.description}>{movie.description}</Text>
+              <Text style={styles.sectionTitle}>Summary</Text>
+              <Text style={styles.description}>{movie.summary}</Text>
+            </View>
+          ) : null}
+
+          {/* Authors / Producers / Studios */}
+          {movie.authors?.length > 0 || movie.producers?.length > 0 || movie.studios?.length > 0 ? (
+            <View style={styles.section}>
+              {movie.authors?.length > 0 ? (
+                <View style={{ marginBottom: 8 }}>
+                  <Text style={styles.sectionTitle}>Authors</Text>
+                  <Text style={{ fontSize: 13, color: '#5D4037' }}>{movie.authors.join(', ')}</Text>
+                </View>
+              ) : null}
+              {movie.producers?.length > 0 ? (
+                <View style={{ marginBottom: 8 }}>
+                  <Text style={styles.sectionTitle}>Producers</Text>
+                  <Text style={{ fontSize: 13, color: '#5D4037' }}>{movie.producers.join(', ')}</Text>
+                </View>
+              ) : null}
+              {movie.studios?.length > 0 ? (
+                <View>
+                  <Text style={styles.sectionTitle}>Studios</Text>
+                  <Text style={{ fontSize: 13, color: '#5D4037' }}>{movie.studios.join(', ')}</Text>
+                </View>
+              ) : null}
             </View>
           ) : null}
 
@@ -424,19 +509,19 @@ export default function MovieDetailScreen() {
           {movie.trailers?.length > 0 ? (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Trailers</Text>
-              {movie.trailers.map((trailer) => (
+              {movie.trailers.map((url, idx) => (
                 <TouchableOpacity
-                  key={trailer._id}
+                  key={idx}
                   style={styles.trailerItem}
-                  onPress={() => openTrailer(trailer.url)}
+                  onPress={() => openTrailer(url)}
                 >
                   <MaterialIcons name="play-circle-outline" size={24} color="#D35400" />
                   <View style={styles.trailerInfo}>
                     <Text style={styles.trailerLabel} numberOfLines={1}>
-                      {trailer.label || 'Watch Trailer'}
+                      Watch Trailer {idx + 1}
                     </Text>
                     <Text style={styles.trailerUrl} numberOfLines={1}>
-                      {trailer.url}
+                      {url}
                     </Text>
                   </View>
                   <MaterialIcons name="open-in-new" size={18} color="#8D6E63" />
@@ -444,6 +529,50 @@ export default function MovieDetailScreen() {
               ))}
             </View>
           ) : null}
+          {/* Single trailer */}
+          {movie.trailer ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Trailer</Text>
+              <TouchableOpacity
+                style={styles.trailerItem}
+                onPress={() => openTrailer(movie.trailer)}
+              >
+                <MaterialIcons name="play-circle-outline" size={24} color="#D35400" />
+                <View style={styles.trailerInfo}>
+                  <Text style={styles.trailerLabel} numberOfLines={1}>Watch Trailer</Text>
+                  <Text style={styles.trailerUrl} numberOfLines={1}>{movie.trailer}</Text>
+                </View>
+                <MaterialIcons name="open-in-new" size={18} color="#8D6E63" />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          {/* Related Movies */}
+          {movie.relatedMovies?.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Related Movies</Text>
+              <View style={{ gap: 8 }}>
+                {movie.relatedMovies.map((rm) => (
+                  <TouchableOpacity
+                    key={rm._id}
+                    style={styles.relatedMovieItem}
+                    onPress={() => router.push({ pathname: '/movie-detail', params: { id: rm._id } })}
+                  >
+                    {rm.poster ? (
+                      <Image source={{ uri: rm.poster }} style={{ width: 36, height: 52, borderRadius: 6, backgroundColor: '#E8D5C4' }} />
+                    ) : null}
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#2C1810' }} numberOfLines={1}>
+                        {rm.title || rm.name}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#8D6E63' }}>{rm.type?.toUpperCase()} • {rm.score?.toFixed(1)}</Text>
+                    </View>
+                    <MaterialIcons name="chevron-right" size={20} color="#BCAAA4" />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
           {/* Reviews Section */}
           <View style={styles.section}>
             <View style={styles.reviewHeader}>
@@ -457,6 +586,8 @@ export default function MovieDetailScreen() {
                   setEditingReviewId(null);
                   setReviewText('');
                   setReviewRating(1);
+                  setReviewSpoiler(false);
+                  setReviewRecommendation('');
                   setShowReviewModal(true);
                 }}>
                   <MaterialIcons name="edit" size={16} color="#FFF" />
@@ -476,8 +607,42 @@ export default function MovieDetailScreen() {
                 if (aIsUser && !bIsUser) return -1;
                 if (!aIsUser && bIsUser) return 1;
                 return new Date(b.createdAt) - new Date(a.createdAt);
-              }).map((review) => (
-                <View key={review._id} style={styles.reviewCard}>
+              }              ).map((review) => (
+                <View key={review._id} style={[styles.reviewCard, review.isPinned && styles.reviewCardPinned]}>
+                  {/* Badges row */}
+                  <View style={styles.reviewBadges}>
+                    {review.isPinned && (
+                      <View style={styles.badgePinned}>
+                        <MaterialIcons name="push-pin" size={12} color="#FFF" />
+                        <Text style={styles.badgeText}>Pinned</Text>
+                      </View>
+                    )}
+                    {review.containsSpoiler && (
+                      <View style={styles.badgeSpoiler}>
+                        <MaterialIcons name="warning" size={12} color="#FFF" />
+                        <Text style={styles.badgeText}>Spoiler</Text>
+                      </View>
+                    )}
+                    {review.recommendation === 'recommended' && (
+                      <View style={styles.badgeRecommended}>
+                        <MaterialIcons name="thumb-up" size={12} color="#FFF" />
+                        <Text style={styles.badgeText}>Recommended</Text>
+                      </View>
+                    )}
+                    {review.recommendation === 'mixed' && (
+                      <View style={styles.badgeMixed}>
+                        <MaterialIcons name="remove" size={12} color="#FFF" />
+                        <Text style={styles.badgeText}>Mixed</Text>
+                      </View>
+                    )}
+                    {review.recommendation === 'not_recommended' && (
+                      <View style={styles.badgeNotRecommended}>
+                        <MaterialIcons name="thumb-down" size={12} color="#FFF" />
+                        <Text style={styles.badgeText}>Not Recommended</Text>
+                      </View>
+                    )}
+                  </View>
+
                   <View style={styles.reviewHeaderRow}>
                     <View style={styles.reviewUser}>
                       <TouchableOpacity
@@ -498,7 +663,8 @@ export default function MovieDetailScreen() {
                         ) : (
                           <MaterialIcons name="account-circle" size={24} color="#BCAAA4" />
                         )}
-                        <Text style={styles.reviewUserName}>{review.user?.username || review.user?.name || 'User'}</Text>
+                        <Text style={styles.reviewUserName}>{review.user?.name || 'User'}</Text>
+                        {review.isEdited && <Text style={styles.editedBadge}> (edited)</Text>}
                       </TouchableOpacity>
                     </View>
                     <View style={styles.reviewScore}>
@@ -507,7 +673,40 @@ export default function MovieDetailScreen() {
                     </View>
                   </View>
                   <Text style={styles.reviewBody}>{review.bodyText}</Text>
-                  
+
+                  {/* Reactions */}
+                  <View style={styles.reactionsRow}>
+                    {['helpful', 'nice', 'love', 'funny', 'confusing'].map(type => {
+                      const count = review.reactions?.[type]?.length || 0;
+                      const userId = user?._id || user?.id;
+                      const isActive = userId && review.reactions?.[type]?.includes(userId);
+                      return (
+                        <TouchableOpacity
+                          key={type}
+                          style={[styles.reactionBtn, isActive && styles.reactionBtnActive]}
+                          onPress={() => user && handleReact(review._id, type)}
+                          disabled={!user || user.role !== 'customer'}
+                        >
+                          <MaterialIcons
+                            name={
+                              type === 'helpful' ? 'thumb-up' :
+                              type === 'nice' ? 'mood' :
+                              type === 'love' ? 'favorite' :
+                              type === 'funny' ? 'sentiment-very-satisfied' : 'help-outline'
+                            }
+                            size={14}
+                            color={isActive ? '#D35400' : '#8D6E63'}
+                          />
+                          <Text style={[styles.reactionCount, isActive && styles.reactionCountActive]}>{count}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                    <View style={styles.helpfulnessBadge}>
+                      <MaterialIcons name="trending-up" size={14} color="#BCAAA4" />
+                      <Text style={styles.helpfulnessText}>{review.helpfulnessScore || 0}</Text>
+                    </View>
+                  </View>
+
                   <View style={styles.reviewActions}>
                     <Text style={styles.reviewDate}>
                       {new Date(review.createdAt).toLocaleDateString()}
@@ -555,6 +754,8 @@ export default function MovieDetailScreen() {
                 setEditingReviewId(null);
                 setReviewText('');
                 setReviewRating(1);
+                setReviewSpoiler(false);
+                setReviewRecommendation('');
                 setShowReviewModal(true);
               }}
             >
@@ -569,6 +770,8 @@ export default function MovieDetailScreen() {
                 setEditingReviewId(null);
                 setReviewText('');
                 setReviewRating(1);
+                setReviewSpoiler(false);
+                setReviewRecommendation('');
                 setShowReviewModal(true);
               }}
             >
@@ -609,6 +812,26 @@ export default function MovieDetailScreen() {
               value={reviewText}
               onChangeText={setReviewText}
             />
+
+            <Text style={styles.modalLabel}>Recommendation</Text>
+            <View style={styles.ratingButtonsRow}>
+              {['recommended', 'mixed', 'not_recommended'].map(opt => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[styles.recommendBtn, reviewRecommendation === opt && styles.recommendBtnActive]}
+                  onPress={() => setReviewRecommendation(reviewRecommendation === opt ? '' : opt)}
+                >
+                  <Text style={[styles.recommendBtnText, reviewRecommendation === opt && styles.recommendBtnTextActive]}>
+                    {opt === 'recommended' ? 'Recommended' : opt === 'mixed' ? 'Mixed' : 'Not Recommended'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity style={styles.spoilerRow} onPress={() => setReviewSpoiler(!reviewSpoiler)}>
+              <MaterialIcons name={reviewSpoiler ? 'check-box' : 'check-box-outline-blank'} size={20} color="#D35400" />
+              <Text style={styles.spoilerLabel}>Contains spoilers</Text>
+            </TouchableOpacity>
 
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowReviewModal(false)}>
@@ -730,6 +953,24 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
   },
+  trendingBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 100,
+    backgroundColor: '#E74C3C',
+    borderRadius: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    zIndex: 10,
+  },
+  trendingText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
 
   // Content
   content: {
@@ -780,9 +1021,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   statusTag: {
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   statusCompleted: { backgroundColor: '#E8F8F5' },
   statusOngoing: { backgroundColor: '#EBF5FB' },
@@ -829,6 +1073,22 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 13,
+    color: '#8D6E63',
+    fontWeight: '500',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 6,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statText: {
+    fontSize: 12,
     color: '#8D6E63',
     fontWeight: '500',
   },
@@ -903,6 +1163,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
+  relatedMovieItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#F5EBE6',
+  },
+
   // Action Buttons
   actionButtonsRow: {
     flexDirection: 'row',
@@ -972,12 +1243,28 @@ const styles = StyleSheet.create({
   writeReviewBtnText: { color: '#FFF', fontSize: 12, fontWeight: '600' },
   emptyReviewText: { color: '#8D6E63', fontStyle: 'italic', fontSize: 13 },
   reviewCard: { backgroundColor: '#FFF', padding: 12, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#F5EBE6' },
+  reviewCardPinned: { borderColor: '#D35400', borderWidth: 1.5 },
+  reviewBadges: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 6 },
+  badgePinned: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#D35400', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  badgeSpoiler: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#E74C3C', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  badgeRecommended: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#27AE60', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  badgeMixed: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#F39C12', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  badgeNotRecommended: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#E74C3C', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  badgeText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
+  editedBadge: { fontSize: 11, color: '#BCAAA4', fontStyle: 'italic' },
   reviewHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   reviewUser: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   reviewUserName: { fontSize: 13, fontWeight: '700', color: '#2C1810' },
   reviewScore: { flexDirection: 'row', alignItems: 'center', gap: 2, backgroundColor: '#FFF8F0', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
   reviewScoreText: { fontSize: 12, fontWeight: '700', color: '#D35400' },
   reviewBody: { fontSize: 13, color: '#5D4037', lineHeight: 20, marginBottom: 8 },
+  reactionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  reactionBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 14, backgroundColor: '#F5EBE6' },
+  reactionBtnActive: { backgroundColor: '#FDEBD0' },
+  reactionCount: { fontSize: 11, color: '#8D6E63', fontWeight: '600' },
+  reactionCountActive: { color: '#D35400' },
+  helpfulnessBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 'auto' },
+  helpfulnessText: { fontSize: 11, color: '#BCAAA4', fontWeight: '600' },
   reviewActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F5EBE6', paddingTop: 8 },
   reviewDate: { fontSize: 11, color: '#BCAAA4' },
   deleteReviewText: { fontSize: 12, color: '#E74C3C', fontWeight: '600' },
@@ -993,7 +1280,13 @@ const styles = StyleSheet.create({
   ratingBtnActive: { backgroundColor: '#D35400' },
   ratingBtnText: { color: '#8D6E63', fontSize: 12, fontWeight: '600' },
   ratingBtnTextActive: { color: '#FFF' },
-  reviewInput: { backgroundColor: '#F9F5F2', borderRadius: 10, padding: 12, minHeight: 80, textAlignVertical: 'top', borderWidth: 1, borderColor: '#E8D5C4', marginBottom: 20 },
+  reviewInput: { backgroundColor: '#F9F5F2', borderRadius: 10, padding: 12, minHeight: 80, textAlignVertical: 'top', borderWidth: 1, borderColor: '#E8D5C4', marginBottom: 16 },
+  recommendBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: '#F5EBE6' },
+  recommendBtnActive: { backgroundColor: '#D35400' },
+  recommendBtnText: { fontSize: 12, fontWeight: '600', color: '#8D6E63' },
+  recommendBtnTextActive: { color: '#FFF' },
+  spoilerRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 },
+  spoilerLabel: { fontSize: 13, color: '#5D4037', fontWeight: '500' },
   modalActions: { flexDirection: 'row', gap: 12 },
   modalCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F5EBE6', alignItems: 'center' },
   modalCancelBtnText: { color: '#8D6E63', fontWeight: '700' },

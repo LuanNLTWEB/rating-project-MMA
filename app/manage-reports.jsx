@@ -125,7 +125,7 @@ export default function ManageReportsScreen() {
         <View style={styles.reporterInfo}>
           <MaterialIcons name="report-problem" size={18} color="#E74C3C" />
           <TouchableOpacity onPress={() => item.reporter?._id && router.push({ pathname: '/user-profile', params: { userId: item.reporter._id } })}>
-            <Text style={styles.reporterName}>Reported by {item.reporter?.username || item.reporter?.name || 'Unknown'}</Text>
+            <Text style={styles.reporterName}>Reported by {item.reporter?.name || 'Unknown'}</Text>
           </TouchableOpacity>
         </View>
         <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
@@ -140,7 +140,7 @@ export default function ManageReportsScreen() {
 
       <View style={styles.reviewBlock}>
         <TouchableOpacity onPress={() => item.review?.user?._id && router.push({ pathname: '/user-profile', params: { userId: item.review.user._id } })}>
-          <Text style={styles.reviewHeader}>Reported Review (by {item.review?.user?.username || item.review?.user?.name || 'Unknown'})</Text>
+          <Text style={styles.reviewHeader}>Reported Review (by {item.review?.user?.name || 'Unknown'})</Text>
         </TouchableOpacity>
         <Text style={styles.reviewText}>{item.review?.bodyText || '[Review deleted or missing]'}</Text>
       </View>
@@ -168,7 +168,7 @@ export default function ManageReportsScreen() {
         <View style={styles.reporterInfo}>
           <MaterialIcons name="person" size={18} color="#8D6E63" />
           <TouchableOpacity onPress={() => item.user?._id && router.push({ pathname: '/user-profile', params: { userId: item.user._id } })}>
-            <Text style={styles.reporterName}>{item.user?.username || item.user?.name || 'Unknown'}</Text>
+            <Text style={styles.reporterName}>{item.user?.name || 'Unknown'}</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.ratingBadge}>
@@ -178,7 +178,7 @@ export default function ManageReportsScreen() {
       </View>
       
       {item.movie && (
-        <Text style={styles.movieInfo}>Movie: {item.movie.title || item.movie.titleEnglish}</Text>
+        <Text style={styles.movieInfo}>Movie: {item.movie.name || item.movie.title}</Text>
       )}
 
       <View style={[styles.reviewBlock, item.isHidden && { backgroundColor: '#F2D7D5' }]}>

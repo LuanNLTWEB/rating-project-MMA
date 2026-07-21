@@ -141,7 +141,7 @@ const reviewsJsx = `          {/* Reviews Section */}
                   <View style={styles.reviewHeaderRow}>
                     <View style={styles.reviewUser}>
                       <MaterialIcons name="account-circle" size={24} color="#BCAAA4" />
-                      <Text style={styles.reviewUserName}>{review.user?.username || review.user?.name || 'User'}</Text>
+                      <Text style={styles.reviewUserName}>{review.user?.name || 'User'}</Text>
                     </View>
                     <View style={styles.reviewScore}>
                       <MaterialIcons name="star" size={14} color="#F4C430" />

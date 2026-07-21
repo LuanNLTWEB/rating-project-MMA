@@ -101,13 +101,13 @@ export default function FavoritesScreen() {
     >
       <View style={styles.imageContainer}>
         <Image
-          source={{ uri: item.poster || item.image || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
+          source={{ uri: item.poster || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
           style={styles.cardImage}
           resizeMode="cover"
         />
         <View style={styles.ratingBadge}>
           <MaterialIcons name="star" size={12} color="#FFF" />
-          <Text style={styles.ratingText}>{item.score ? item.score.toFixed(1) : 'N/A'}</Text>
+          <Text style={styles.ratingText}>{item.score > 0 ? `${item.score.toFixed(1)}/5` : 'N/A'}</Text>
         </View>
         <View style={styles.typeBadge}>
           <Text style={styles.typeText}>{item.type?.toUpperCase()}</Text>

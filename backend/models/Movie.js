@@ -1,36 +1,26 @@
 import mongoose from 'mongoose';
 
-const trailerSchema = new mongoose.Schema(
-  {
-    label: {
-      type: String,
-      default: '',
-    },
-    url: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-  },
-  { _id: true }
-);
-
 const movieSchema = new mongoose.Schema(
   {
-    title: {
+    name: {
       type: String,
       required: true,
       trim: true,
     },
-    description: {
+    title: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    summary: {
       type: String,
       trim: true,
       default: '',
     },
     type: {
       type: String,
-      enum: ['movie', 'anime'],
-      default: 'anime',
+      enum: ["ova", "movie", "tv series", "specials"],
+      default: 'tv series',
     },
     genres: [
       {
@@ -38,14 +28,10 @@ const movieSchema = new mongoose.Schema(
         ref: 'Genre',
       },
     ],
-    releaseYear: {
-      type: Number,
-      required: true,
-    },
     releaseDate: {
       type: Date,
     },
-    episodes: {
+    totalEpisodes: {
       type: Number,
       default: 0,
       min: 0,
@@ -62,34 +48,84 @@ const movieSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Upcoming', 'Ongoing', 'Completed'],
-      default: 'Ongoing',
+      enum: ['upcoming', 'ongoing', 'completed'],
+      default: 'ongoing',
     },
-    // Poster image URL (used by the app UI)
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
     poster: {
       type: String,
       default: '',
     },
-    // Legacy image field kept for backward compatibility with older records
-    image: {
-      type: String,
-      default: '',
-    },
-    // Banner image URL shown on the movie detail page
     banner: {
       type: String,
       default: '',
     },
-    // Trailer links (add / edit / delete)
-    trailers: [trailerSchema],
-    trending: {
-      type: Boolean,
-      default: false,
+    trailer: {
+      type: String,
+      default: '',
     },
-    // Visibility status controlled by staff (hidden anime won't show in public lists)
+    trailers: [
+      {
+        type: String,
+        default: '',
+      },
+    ],
+    authors: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    producers: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    studios: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    relatedMovies: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Movie',
+      },
+    ],
+    relatedNews: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'News',
+      },
+    ],
+    viewCount: {
+      type: Number,
+      default: 0,
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+    },
+    bayesianRating: {
+      type: Number,
+      default: 0,
+    },
+    memberCount: {
+      type: Number,
+      default: 0,
+    },
     visible: {
       type: Boolean,
       default: true,
+    },
+    trending: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true, strict: false }

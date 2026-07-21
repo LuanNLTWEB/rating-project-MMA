@@ -34,3 +34,13 @@ export const toggleHideReview = async (reviewId) => {
   const response = await api.patch(`/reviews/${reviewId}/hide`);
   return response.data;
 };
+
+export const togglePinReview = async (reviewId) => {
+  const response = await api.patch(`/reviews/${reviewId}/pin`);
+  return response.data;
+};
+
+export const toggleSpoilerReview = async (reviewId, containsSpoiler) => {
+  const response = await api.patch(`/reviews/${reviewId}/spoiler`, { containsSpoiler });
+  return response.data;
+};

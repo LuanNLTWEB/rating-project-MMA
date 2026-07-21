@@ -179,14 +179,14 @@ export default function ExploreScreen() {
       >
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: item.poster || item.image || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
+            source={{ uri: item.poster || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
             style={styles.cardImage}
             resizeMode="cover"
           />
           {/* Rating score badge */}
           <View style={styles.ratingBadge}>
             <MaterialIcons name="star" size={12} color="#FFF" />
-            <Text style={styles.ratingText}>{item.score ? item.score.toFixed(1) : 'N/A'}</Text>
+            <Text style={styles.ratingText}>{item.score > 0 ? `${item.score.toFixed(1)}/5` : 'N/A'}</Text>
           </View>
           {/* Type Badge */}
           <View style={styles.typeBadge}>
@@ -202,13 +202,13 @@ export default function ExploreScreen() {
             <Text style={styles.cardYear}>Year: {item.releaseYear}</Text>
             <View style={[
               styles.statusTag,
-              item.status === 'Completed' ? styles.statusCompleted :
-                item.status === 'Ongoing' ? styles.statusOngoing : styles.statusUpcoming
+              item.status === 'completed' ? styles.statusCompleted :
+                item.status === 'ongoing' ? styles.statusOngoing : styles.statusUpcoming
             ]}>
               <Text style={[
                 styles.statusTagText,
-                item.status === 'Completed' ? styles.textCompleted :
-                  item.status === 'Ongoing' ? styles.textOngoing : styles.textUpcoming
+                item.status === 'completed' ? styles.textCompleted :
+                  item.status === 'ongoing' ? styles.textOngoing : styles.textUpcoming
               ]}>
                 {item.status}
               </Text>
@@ -402,7 +402,7 @@ export default function ExploreScreen() {
             {/* Status Filter */}
             <Text style={styles.filterLabel}>Status</Text>
             <View style={styles.statusButtonsRow}>
-              {['Upcoming', 'Ongoing', 'Completed'].map((status) => {
+              {['upcoming', 'ongoing', 'completed'].map((status) => {
                 const isSelected = tempStatus === status;
                 return (
                   <TouchableOpacity
