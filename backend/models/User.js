@@ -18,6 +18,8 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ['customer', 'staff', 'admin'], default: 'customer' },
     status: { type: String, enum: ['active', 'suspended', 'banned'], default: 'active' },
     avatar: { type: String, default: '' },
+    favoritesPublic: { type: Boolean, default: false },
+    watchlistPublic: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

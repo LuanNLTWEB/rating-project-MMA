@@ -62,6 +62,8 @@ router.post('/register', async (req, res) => {
         dateOfBirth: user.dateOfBirth,
         phone: user.phone,
         role: user.role,
+        favoritesPublic: user.favoritesPublic,
+        watchlistPublic: user.watchlistPublic,
       },
     });
   } catch (err) {
@@ -108,6 +110,8 @@ router.post('/login', async (req, res) => {
         dateOfBirth: user.dateOfBirth,
         phone: user.phone,
         role: user.role,
+        favoritesPublic: user.favoritesPublic,
+        watchlistPublic: user.watchlistPublic,
       },
     });
   } catch (err) {

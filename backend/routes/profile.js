@@ -30,7 +30,7 @@ router.get('/', auth, async (req, res) => {
 // PUT /api/profile — update profile
 router.put('/', auth, async (req, res) => {
   try {
-    const { name, gender, dateOfBirth, phone, currentPassword, newPassword } = req.body;
+    const { name, gender, dateOfBirth, phone, currentPassword, newPassword, favoritesPublic, watchlistPublic } = req.body;
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -53,6 +53,9 @@ router.put('/', auth, async (req, res) => {
       }
       user.phone = phone;
     }
+
+    if (favoritesPublic !== undefined) user.favoritesPublic = Boolean(favoritesPublic);
+    if (watchlistPublic !== undefined) user.watchlistPublic = Boolean(watchlistPublic);
 
     if (newPassword) {
       if (!currentPassword) {
@@ -94,6 +97,8 @@ router.put('/', auth, async (req, res) => {
         dateOfBirth: user.dateOfBirth,
         phone: user.phone,
         role: user.role,
+        favoritesPublic: user.favoritesPublic,
+        watchlistPublic: user.watchlistPublic,
       },
     });
   } catch (err) {
@@ -126,7 +131,7 @@ router.get('/activity', auth, async (req, res) => {
 // GET /api/profile/:userId — get public profile of any user
 router.get('/:userId', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId).select('name gender dateOfBirth role avatar createdAt');
+    const user = await User.findById(req.params.userId).select('name gender dateOfBirth role avatar favoritesPublic watchlistPublic createdAt');
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json(user);
   } catch {

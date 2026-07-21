@@ -2,6 +2,7 @@ import { Router } from 'express';
 import auth from '../middleware/auth.js';
 import Watchlist from '../models/Watchlist.js';
 import Movie from '../models/Movie.js';
+import User from '../models/User.js';
 import UserActivityLog from '../models/UserActivityLog.js';
 
 async function log(userId, action, details = '') {
@@ -41,6 +42,39 @@ router.get('/ids', auth, async (req, res) => {
   try {
     const entries = await Watchlist.find({ userId: req.user.id }).select('movieId status');
     res.json(entries.map((e) => ({ movieId: e.movieId.toString(), status: e.status })));
+  } catch {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/watchlist/user/:userId — view another user's watchlist (public if allowed)
+router.get('/user/:userId', auth, async (req, res) => {
+  try {
+    const targetUser = await User.findById(req.params.userId).select('watchlistPublic name');
+    if (!targetUser) return res.status(404).json({ message: 'User not found' });
+
+    if (!targetUser.watchlistPublic) {
+      return res.status(403).json({ message: 'This user\'s watchlist is private' });
+    }
+
+    const filter = { userId: req.params.userId };
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+
+    const entries = await Watchlist.find(filter)
+      .sort({ createdAt: -1 })
+      .populate({ path: 'movieId', populate: { path: 'genres' } });
+
+    const movies = entries
+      .filter((e) => e.movieId)
+      .map((e) => ({
+        ...e.movieId.toObject(),
+        watchStatus: e.status,
+        addedAt: e.createdAt,
+      }));
+
+    res.json(movies);
   } catch {
     res.status(500).json({ message: 'Server error' });
   }

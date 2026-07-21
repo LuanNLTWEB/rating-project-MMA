@@ -30,3 +30,10 @@ export const removeFromWatchlist = async (movieId) => {
   const response = await api.delete(`/watchlist/${movieId}`);
   return response.data;
 };
+
+// Fetch another user's watchlist (public only)
+export const getUserWatchlist = async (userId, status) => {
+  const params = status ? { status } : {};
+  const response = await api.get(`/watchlist/user/${userId}`, { params });
+  return response.data;
+};

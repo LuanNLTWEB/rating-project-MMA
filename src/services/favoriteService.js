@@ -23,3 +23,9 @@ export const removeFavorite = async (movieId) => {
   const response = await api.delete(`/favorites/${movieId}`);
   return response.data;
 };
+
+// Fetch another user's favorites (public only)
+export const getUserFavorites = async (userId) => {
+  const response = await api.get(`/favorites/user/${userId}`);
+  return response.data;
+};

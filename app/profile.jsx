@@ -32,6 +32,8 @@ export default function ProfileScreen() {
   const [phone, setPhone] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [showPicker, setShowPicker] = useState(false);
+  const [favoritesPublic, setFavoritesPublic] = useState(false);
+  const [watchlistPublic, setWatchlistPublic] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -48,6 +50,8 @@ export default function ProfileScreen() {
       setGender(data.gender || '');
       setDateOfBirth(data.dateOfBirth || '');
       setPhone(data.phone || '');
+      setFavoritesPublic(data.favoritesPublic || false);
+      setWatchlistPublic(data.watchlistPublic || false);
     } catch {
       const userStr = await AsyncStorage.getItem('user');
       if (userStr) {
@@ -57,6 +61,8 @@ export default function ProfileScreen() {
         setGender(parsed.gender || '');
         setDateOfBirth(parsed.dateOfBirth || '');
         setPhone(parsed.phone || '');
+        setFavoritesPublic(parsed.favoritesPublic || false);
+        setWatchlistPublic(parsed.watchlistPublic || false);
       }
     } finally {
       setLoading(false);
@@ -114,6 +120,8 @@ export default function ProfileScreen() {
         gender,
         dateOfBirth,
         phone: phone.trim().replace(/\s/g, ''),
+        favoritesPublic,
+        watchlistPublic,
       };
       if (newPassword) {
         payload.newPassword = newPassword;
@@ -143,6 +151,8 @@ export default function ProfileScreen() {
       setGender(user.gender || '');
       setDateOfBirth(user.dateOfBirth || '');
       setPhone(user.phone || '');
+      setFavoritesPublic(user.favoritesPublic || false);
+      setWatchlistPublic(user.watchlistPublic || false);
     }
   };
 
@@ -252,6 +262,47 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Privacy Settings</Text>
+          <Text style={styles.privacyDesc}>Control who can see your personal lists</Text>
+
+          <View style={styles.privacyRow}>
+            <View style={styles.privacyInfo}>
+              <MaterialIcons name="favorite" size={20} color="#D35400" />
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <Text style={styles.privacyLabel}>Favorites List</Text>
+                <Text style={styles.privacySubtext}>{favoritesPublic ? 'Public' : 'Private'}</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[styles.toggleBtn, favoritesPublic && styles.toggleActive]}
+              onPress={() => {
+                if (editing) setFavoritesPublic(!favoritesPublic);
+              }}
+            >
+              <View style={[styles.toggleDot, favoritesPublic && styles.toggleDotActive]} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.privacyRow}>
+            <View style={styles.privacyInfo}>
+              <MaterialIcons name="visibility" size={20} color="#D35400" />
+              <View style={{ marginLeft: 12, flex: 1 }}>
+                <Text style={styles.privacyLabel}>Watchlist</Text>
+                <Text style={styles.privacySubtext}>{watchlistPublic ? 'Public' : 'Private'}</Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={[styles.toggleBtn, watchlistPublic && styles.toggleActive]}
+              onPress={() => {
+                if (editing) setWatchlistPublic(!watchlistPublic);
+              }}
+            >
+              <View style={[styles.toggleDot, watchlistPublic && styles.toggleDotActive]} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {!editing && (
           <>
             <TouchableOpacity style={styles.activityBtn} onPress={() => router.push('/activity')}>
@@ -324,4 +375,13 @@ const styles = StyleSheet.create({
   saveBtnText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
   error: { color: '#E74C3C', fontSize: 13, textAlign: 'center', marginBottom: 8 },
   success: { color: '#27AE60', fontSize: 13, textAlign: 'center', marginBottom: 8 },
+  privacyDesc: { fontSize: 13, color: '#8D6E63', marginBottom: 16 },
+  privacyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#F5EBE6' },
+  privacyInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  privacyLabel: { fontSize: 14, fontWeight: '600', color: '#2C1810' },
+  privacySubtext: { fontSize: 12, color: '#8D6E63', marginTop: 2 },
+  toggleBtn: { width: 48, height: 28, borderRadius: 14, backgroundColor: '#E0D5CC', justifyContent: 'center', paddingHorizontal: 3 },
+  toggleActive: { backgroundColor: '#D35400' },
+  toggleDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#FFFFFF' },
+  toggleDotActive: { alignSelf: 'flex-end' },
 });

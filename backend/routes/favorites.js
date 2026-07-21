@@ -2,6 +2,7 @@ import { Router } from 'express';
 import auth from '../middleware/auth.js';
 import Favorite from '../models/Favorite.js';
 import Movie from '../models/Movie.js';
+import User from '../models/User.js';
 import UserActivityLog from '../models/UserActivityLog.js';
 
 async function log(userId, action, details = '') {
@@ -36,6 +37,33 @@ router.get('/ids', auth, async (req, res) => {
     const favorites = await Favorite.find({ userId: req.user.id }).select('movieId');
     res.json(favorites.map((f) => f.movieId.toString()));
   } catch {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/favorites/user/:userId — view another user's favorites (public if allowed)
+router.get('/user/:userId', auth, async (req, res) => {
+  try {
+    const targetUser = await User.findById(req.params.userId).select('favoritesPublic name');
+    if (!targetUser) return res.status(404).json({ message: 'User not found' });
+
+    if (!targetUser.favoritesPublic) {
+      return res.status(403).json({ message: 'This user\'s favorites are private' });
+    }
+
+    const favorites = await Favorite.find({ userId: req.params.userId })
+      .sort({ createdAt: -1 })
+      .populate({ path: 'movieId', populate: { path: 'genres' } });
+
+    const movies = favorites
+      .filter((f) => f.movieId)
+      .map((f) => ({
+        ...f.movieId.toObject(),
+        favoritedAt: f.createdAt,
+      }));
+
+    res.json(movies);
+  } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
