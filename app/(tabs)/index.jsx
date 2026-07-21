@@ -139,7 +139,7 @@ export default function HomeScreen() {
         />
         <View style={styles.scoreBadge}>
           <MaterialIcons name="star" size={12} color="#FFF" style={styles.starIcon} />
-          <Text style={styles.scoreText}>{item.score ? item.score.toFixed(1) : '0.0'}</Text>
+          <Text style={styles.scoreText}>{item.score ? item.score.toFixed(1) : 'N/A'}</Text>
         </View>
         <View style={styles.cardInfo}>
           <Text style={styles.movieTitle} numberOfLines={1}>
