@@ -186,7 +186,7 @@ export default function ExploreScreen() {
           {/* Rating score badge */}
           <View style={styles.ratingBadge}>
             <MaterialIcons name="star" size={12} color="#FFF" />
-            <Text style={styles.ratingText}>{item.score.toFixed(1)}</Text>
+            <Text style={styles.ratingText}>{item.score ? item.score.toFixed(1) : 'N/A'}</Text>
           </View>
           {/* Type Badge */}
           <View style={styles.typeBadge}>

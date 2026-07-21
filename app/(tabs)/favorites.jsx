@@ -107,7 +107,7 @@ export default function FavoritesScreen() {
         />
         <View style={styles.ratingBadge}>
           <MaterialIcons name="star" size={12} color="#FFF" />
-          <Text style={styles.ratingText}>{item.score?.toFixed(1)}</Text>
+          <Text style={styles.ratingText}>{item.score ? item.score.toFixed(1) : 'N/A'}</Text>
         </View>
         <View style={styles.typeBadge}>
           <Text style={styles.typeText}>{item.type?.toUpperCase()}</Text>
