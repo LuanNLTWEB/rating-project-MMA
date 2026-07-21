@@ -2,6 +2,7 @@ import { Router } from 'express';
 import auth from '../middleware/auth.js';
 import Review from '../models/Review.js';
 import Movie from '../models/Movie.js';
+import Watchlist from '../models/Watchlist.js';
 
 const router = Router();
 
@@ -44,6 +45,11 @@ router.post('/movie/:movieId', auth, async (req, res) => {
     const movie = await Movie.findById(movieId);
     if (!movie) {
       return res.status(404).json({ message: 'Movie not found.' });
+    }
+
+    const wlEntry = await Watchlist.findOne({ userId, movieId });
+    if (!wlEntry || (wlEntry.status !== 'watching' && wlEntry.status !== 'completed')) {
+      return res.status(403).json({ message: 'You must have this movie in your Watchlist (Watching or Completed) to write a review.' });
     }
 
     const review = await Review.create({

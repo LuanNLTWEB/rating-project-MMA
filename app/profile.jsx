@@ -8,13 +8,15 @@ import {
   ActivityIndicator,
   ScrollView,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { getProfile, updateProfile } from '@/src/services/profileService';
+import * as ImagePicker from 'expo-image-picker';
+import { getProfile, updateProfile, uploadAvatar } from '@/src/services/profileService';
 
 const GENDERS = ['Male', 'Female', 'Other'];
 const PHONE_REGEX = /^(0|\+84)[3-9][0-9]{8}$/;
@@ -36,6 +38,44 @@ export default function ProfileScreen() {
   const [watchlistPublic, setWatchlistPublic] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      handleUploadAvatar(result.assets[0]);
+    }
+  };
+
+  const handleUploadAvatar = async (asset) => {
+    try {
+      setUploadingAvatar(true);
+      
+      const formData = new FormData();
+      formData.append('avatar', {
+        uri: Platform.OS === 'ios' ? asset.uri.replace('file://', '') : asset.uri,
+        name: asset.fileName || `avatar_${Date.now()}.jpg`,
+        type: asset.mimeType || 'image/jpeg',
+      });
+      
+      const response = await uploadAvatar(formData);
+      
+      setUser(response.user);
+      await AsyncStorage.setItem('user', JSON.stringify(response.user));
+      
+      setSuccess('Avatar updated successfully');
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to upload avatar');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   useEffect(() => {
     loadProfile();
@@ -174,8 +214,23 @@ export default function ProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.avatarSection}>
-          <View style={styles.avatarCircle}>
-            <MaterialIcons name={user?.gender === 'Male' ? 'male' : user?.gender === 'Female' ? 'female' : 'person'} size={48} color="#FFFFFF" />
+          <View style={styles.avatarWrapper}>
+            {user?.avatar ? (
+              <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarCircle}>
+                <MaterialIcons name={user?.gender === 'Male' ? 'male' : user?.gender === 'Female' ? 'female' : 'person'} size={48} color="#FFFFFF" />
+              </View>
+            )}
+            {editing && (
+              <TouchableOpacity style={styles.avatarEditBtn} onPress={pickImage} disabled={uploadingAvatar}>
+                {uploadingAvatar ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <MaterialIcons name="camera-alt" size={16} color="#FFF" />
+                )}
+              </TouchableOpacity>
+            )}
           </View>
           <Text style={styles.displayName}>{user?.name}</Text>
           <Text style={styles.displayEmail}>{user?.email}</Text>
@@ -347,7 +402,10 @@ const styles = StyleSheet.create({
   editBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#F5EBE6' },
   scrollContent: { padding: 20, paddingBottom: 40 },
   avatarSection: { alignItems: 'center', marginBottom: 24 },
-  avatarCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#D35400', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  avatarWrapper: { position: 'relative', marginBottom: 12 },
+  avatarCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#D35400', justifyContent: 'center', alignItems: 'center' },
+  avatarImage: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#E8D5C4' },
+  avatarEditBtn: { position: 'absolute', bottom: 0, right: -4, width: 28, height: 28, borderRadius: 14, backgroundColor: '#2980B9', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFF8F0' },
   displayName: { fontSize: 20, fontWeight: '700', color: '#2C1810' },
   displayEmail: { fontSize: 14, color: '#8D6E63', marginTop: 4 },
   roleBadge: { marginTop: 8, backgroundColor: '#FBEBE1', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 3 },
