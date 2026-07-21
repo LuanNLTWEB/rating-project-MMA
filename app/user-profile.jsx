@@ -198,6 +198,8 @@ export default function UserProfileScreen() {
           </Text>
         </View>
 
+        {user?.role !== 'staff' && (
+        <>
         {/* Favorites Section */}
         <TouchableOpacity style={styles.listToggle} onPress={toggleFavorites}>
           <MaterialIcons name="favorite" size={20} color="#D35400" />
@@ -259,6 +261,8 @@ export default function UserProfileScreen() {
               ))
             )}
           </View>
+        )}
+        </>
         )}
       </ScrollView>
     </SafeAreaView>

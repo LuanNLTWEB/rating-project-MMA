@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
@@ -8,6 +9,21 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const [role, setRole] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const userStr = await AsyncStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          setRole(user.role);
+        }
+      } catch {}
+    })();
+  }, []);
+
+  const isCustomer = role === 'customer';
 
   return (
     <Tabs
@@ -48,6 +64,7 @@ export default function TabLayout() {
         options={{
           title: 'Favorites',
           tabBarIcon: ({ color }) => <MaterialIcons name="favorite" size={22} color={color} />,
+          href: isCustomer ? undefined : null,
         }}
       />
       <Tabs.Screen
@@ -55,6 +72,7 @@ export default function TabLayout() {
         options={{
           title: 'Watchlist',
           tabBarIcon: ({ color }) => <MaterialIcons name="bookmark" size={22} color={color} />,
+          href: isCustomer ? undefined : null,
         }}
       />
       <Tabs.Screen

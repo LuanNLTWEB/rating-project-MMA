@@ -262,6 +262,7 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {user?.role === 'customer' && (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Privacy Settings</Text>
           <Text style={styles.privacyDesc}>Control who can see your personal lists</Text>
@@ -302,6 +303,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        )}
 
         {!editing && (
           <>
