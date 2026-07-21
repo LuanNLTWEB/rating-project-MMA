@@ -2,8 +2,24 @@ import { Router } from 'express';
 import auth from '../middleware/auth.js';
 import User from '../models/User.js';
 import UserActivityLog from '../models/UserActivityLog.js';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
 const router = Router();
 
+const uploadDir = path.join(process.cwd(), 'uploads', 'profiles');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
+    cb(null, `${req.user.id}_${Date.now()}${path.extname(file.originalname)}`);
+  }
+});
+const upload = multer({ storage });
 const GENDERS = ['Male', 'Female', 'Other'];
 const PHONE_REGEX = /^(0|\+84)[3-9][0-9]{8}$/;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -103,6 +119,26 @@ router.put('/', auth, async (req, res) => {
     });
   } catch (err) {
     console.error('Update profile error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/profile/avatar — upload avatar
+router.post('/avatar', auth, upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    
+    const avatarUrl = `${req.protocol}://${req.get('host')}/uploads/profiles/${req.file.filename}`;
+    user.avatar = avatarUrl;
+    await user.save();
+    
+    await logActivity(user._id, 'avatar_update');
+    
+    res.json({ message: 'Avatar updated', avatarUrl: user.avatar, user: { id: user._id, avatar: user.avatar, name: user.name, role: user.role } });
+  } catch (err) {
+    console.error('Avatar upload error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

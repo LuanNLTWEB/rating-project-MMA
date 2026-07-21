@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -23,7 +23,7 @@ export default function TabLayout() {
     })();
   }, []);
 
-  const isCustomer = role === 'customer';
+  const isCustomer = role === 'customer' || role === null;
 
   return (
     <Tabs
@@ -64,7 +64,7 @@ export default function TabLayout() {
         options={{
           title: 'Favorites',
           tabBarIcon: ({ color }) => <MaterialIcons name="favorite" size={22} color={color} />,
-          href: isCustomer ? undefined : null,
+          href: isCustomer ? '/favorites' : null,
         }}
       />
       <Tabs.Screen
@@ -72,7 +72,7 @@ export default function TabLayout() {
         options={{
           title: 'Watchlist',
           tabBarIcon: ({ color }) => <MaterialIcons name="bookmark" size={22} color={color} />,
-          href: isCustomer ? undefined : null,
+          href: isCustomer ? '/watchlist' : null,
         }}
       />
       <Tabs.Screen

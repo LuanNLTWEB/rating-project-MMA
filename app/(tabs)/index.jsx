@@ -133,7 +133,7 @@ export default function HomeScreen() {
         }
       >
         <Image
-          source={{ uri: item.image || item.poster || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
+          source={{ uri: item.poster || item.image || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
           style={styles.movieImage}
           resizeMode="cover"
         />
@@ -279,7 +279,7 @@ export default function HomeScreen() {
         {featuredMovie && (
           <View style={styles.heroContainer}>
             <Image
-              source={{ uri: featuredMovie.image || featuredMovie.poster }}
+              source={{ uri: featuredMovie.poster || featuredMovie.image || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=60' }}
               style={styles.heroImage}
               resizeMode="cover"
             />
@@ -484,6 +484,7 @@ export default function HomeScreen() {
 
 
               {/* FAVORITES */}
+              {(!user || user.role === 'customer') && (
               <TouchableOpacity
                 style={styles.menuItemRow}
                 onPress={() => {
@@ -493,8 +494,10 @@ export default function HomeScreen() {
               >
                 <Text style={styles.menuItemText}>FAVORITES</Text>
               </TouchableOpacity>
+              )}
 
               {/* WATCHLIST */}
+              {(!user || user.role === 'customer') && (
               <TouchableOpacity
                 style={styles.menuItemRow}
                 onPress={() => {
@@ -504,6 +507,7 @@ export default function HomeScreen() {
               >
                 <Text style={styles.menuItemText}>WATCHLIST</Text>
               </TouchableOpacity>
+              )}
               
               {/* TIN TỨC / NEWS */}
               <TouchableOpacity

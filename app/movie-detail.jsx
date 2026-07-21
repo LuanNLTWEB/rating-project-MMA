@@ -46,6 +46,7 @@ export default function MovieDetailScreen() {
   const [reportReason, setReportReason] = useState('');
   const [selectedReviewId, setSelectedReviewId] = useState(null);
   const [editingReviewId, setEditingReviewId] = useState(null);
+  const [showWlPromptModal, setShowWlPromptModal] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -158,6 +159,10 @@ export default function MovieDetailScreen() {
       setEditingReviewId(null);
       const updatedReviews = await getMovieReviews(id);
       setReviews(updatedReviews);
+      
+      // Update movie score and review count in real-time
+      const updatedMovie = await getMovie(id);
+      setMovie(updatedMovie);
     } catch (err) {
       Alert.alert('Error', err?.response?.data?.message || 'Failed to save review');
     }
@@ -177,6 +182,10 @@ export default function MovieDetailScreen() {
           try {
             await deleteReview(reviewId);
             setReviews(reviews.filter(r => r._id !== reviewId));
+            
+            // Update movie score and review count in real-time
+            const updatedMovie = await getMovie(id);
+            setMovie(updatedMovie);
           } catch (err) {
             Alert.alert('Error', 'Failed to delete review');
           }
@@ -303,9 +312,9 @@ export default function MovieDetailScreen() {
 
               {/* Score */}
               <View style={styles.scoreRow}>
-                <MaterialIcons name="star" size={18} color="#F4C430" />
+                <MaterialIcons name="star" size={28} color="#D35400" />
                 <Text style={styles.scoreText}>{movie.score?.toFixed(1) || '0.0'}</Text>
-                <Text style={styles.scoreMax}>/ 10</Text>
+                <Text style={styles.scoreMax}>/ 5</Text>
               </View>
 
               {/* Episodes */}
@@ -331,6 +340,7 @@ export default function MovieDetailScreen() {
           </View>
 
           {/* Favorite & Watchlist Buttons */}
+          {user && user.role === 'customer' && (
           <View style={styles.section}>
             <View style={styles.actionButtonsRow}>
               <TouchableOpacity
@@ -386,6 +396,7 @@ export default function MovieDetailScreen() {
               </View>
             )}
           </View>
+          )}
 
           {/* Genres */}
           {movie.genres?.length > 0 ? (
@@ -439,6 +450,10 @@ export default function MovieDetailScreen() {
               <Text style={styles.sectionTitle}>Reviews & Ratings</Text>
               {user && user.role === 'customer' && !reviews.some(r => r.user?._id === (user._id || user.id)) && (
                 <TouchableOpacity style={styles.writeReviewBtn} onPress={() => {
+                  if (watchStatus !== 'watching' && watchStatus !== 'completed') {
+                    setShowWlPromptModal(true);
+                    return;
+                  }
                   setEditingReviewId(null);
                   setReviewText('');
                   setReviewRating(5);
@@ -453,7 +468,15 @@ export default function MovieDetailScreen() {
             {reviews.length === 0 ? (
               <Text style={styles.emptyReviewText}>No reviews yet. Be the first to review!</Text>
             ) : (
-              reviews.map((review) => (
+              [...reviews].sort((a, b) => {
+                if (!user) return 0;
+                const userId = user._id || user.id;
+                const aIsUser = a.user?._id === userId;
+                const bIsUser = b.user?._id === userId;
+                if (aIsUser && !bIsUser) return -1;
+                if (!aIsUser && bIsUser) return 1;
+                return new Date(b.createdAt) - new Date(a.createdAt);
+              }).map((review) => (
                 <View key={review._id} style={styles.reviewCard}>
                   <View style={styles.reviewHeaderRow}>
                     <View style={styles.reviewUser}>
@@ -511,6 +534,56 @@ export default function MovieDetailScreen() {
 
         </View>
       </ScrollView>
+
+      {/* Watchlist Prompt Modal */}
+      <Modal visible={showWlPromptModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { alignItems: 'center' }]}>
+            <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#FFF0E6', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+              <MaterialIcons name="movie-filter" size={32} color="#D35400" />
+            </View>
+            <Text style={[styles.modalTitle, { textAlign: 'center', marginBottom: 8 }]}>Update Watchlist</Text>
+            <Text style={{ fontSize: 14, color: '#5D4037', textAlign: 'center', marginBottom: 24, lineHeight: 22 }}>
+              You must add this movie to your Watchlist (as Watching or Completed) to write a review. What is your status?
+            </Text>
+            
+            <TouchableOpacity 
+              style={{ width: '100%', backgroundColor: '#2980B9', padding: 14, borderRadius: 10, alignItems: 'center', marginBottom: 12 }}
+              onPress={async () => { 
+                setShowWlPromptModal(false);
+                await handleWlSelect('watching');
+                setEditingReviewId(null);
+                setReviewText('');
+                setReviewRating(5);
+                setShowReviewModal(true);
+              }}
+            >
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 15 }}>Watching</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ width: '100%', backgroundColor: '#16A085', padding: 14, borderRadius: 10, alignItems: 'center', marginBottom: 12 }}
+              onPress={async () => { 
+                setShowWlPromptModal(false);
+                await handleWlSelect('completed');
+                setEditingReviewId(null);
+                setReviewText('');
+                setReviewRating(5);
+                setShowReviewModal(true);
+              }}
+            >
+              <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 15 }}>Completed</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ width: '100%', padding: 14, alignItems: 'center' }}
+              onPress={() => setShowWlPromptModal(false)}
+            >
+              <Text style={{ color: '#8D6E63', fontWeight: '600', fontSize: 15 }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Write Review Modal */}
       <Modal visible={showReviewModal} transparent animationType="slide">
