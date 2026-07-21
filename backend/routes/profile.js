@@ -123,4 +123,15 @@ router.get('/activity', auth, async (req, res) => {
   }
 });
 
+// GET /api/profile/:userId — get public profile of any user
+router.get('/:userId', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId).select('name gender dateOfBirth role avatar createdAt');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router;

@@ -124,7 +124,9 @@ export default function ManageReportsScreen() {
       <View style={styles.cardHeader}>
         <View style={styles.reporterInfo}>
           <MaterialIcons name="report-problem" size={18} color="#E74C3C" />
-          <Text style={styles.reporterName}>Reported by {item.reporter?.username || item.reporter?.name || 'Unknown'}</Text>
+          <TouchableOpacity onPress={() => item.reporter?._id && router.push({ pathname: '/user-profile', params: { userId: item.reporter._id } })}>
+            <Text style={styles.reporterName}>Reported by {item.reporter?.username || item.reporter?.name || 'Unknown'}</Text>
+          </TouchableOpacity>
         </View>
         <View style={[styles.statusBadge, styles[`status_${item.status}`]]}>
           <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
@@ -137,7 +139,9 @@ export default function ManageReportsScreen() {
       </View>
 
       <View style={styles.reviewBlock}>
-        <Text style={styles.reviewHeader}>Reported Review (by {item.review?.user?.username || item.review?.user?.name || 'Unknown'}):</Text>
+        <TouchableOpacity onPress={() => item.review?.user?._id && router.push({ pathname: '/user-profile', params: { userId: item.review.user._id } })}>
+          <Text style={styles.reviewHeader}>Reported Review (by {item.review?.user?.username || item.review?.user?.name || 'Unknown'})</Text>
+        </TouchableOpacity>
         <Text style={styles.reviewText}>{item.review?.bodyText || '[Review deleted or missing]'}</Text>
       </View>
 
@@ -163,7 +167,9 @@ export default function ManageReportsScreen() {
       <View style={styles.cardHeader}>
         <View style={styles.reporterInfo}>
           <MaterialIcons name="person" size={18} color="#8D6E63" />
-          <Text style={styles.reporterName}>{item.user?.username || item.user?.name || 'Unknown'}</Text>
+          <TouchableOpacity onPress={() => item.user?._id && router.push({ pathname: '/user-profile', params: { userId: item.user._id } })}>
+            <Text style={styles.reporterName}>{item.user?.username || item.user?.name || 'Unknown'}</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.ratingBadge}>
           <MaterialIcons name="star" size={14} color="#F4C430" />

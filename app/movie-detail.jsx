@@ -457,12 +457,26 @@ export default function MovieDetailScreen() {
                 <View key={review._id} style={styles.reviewCard}>
                   <View style={styles.reviewHeaderRow}>
                     <View style={styles.reviewUser}>
-                      {review.user?.avatar ? (
-                        <Image source={{ uri: review.user.avatar }} style={{ width: 24, height: 24, borderRadius: 12 }} />
-                      ) : (
-                        <MaterialIcons name="account-circle" size={24} color="#BCAAA4" />
-                      )}
-                      <Text style={styles.reviewUserName}>{review.user?.username || review.user?.name || 'User'}</Text>
+                      <TouchableOpacity
+                        style={{ flexDirection: 'row', alignItems: 'center' }}
+                        onPress={() => {
+                          if (review.user?._id) {
+                            const currentUser = user;
+                            if (currentUser && (currentUser._id || currentUser.id) === review.user._id) {
+                              router.push('/profile');
+                            } else {
+                              router.push({ pathname: '/user-profile', params: { userId: review.user._id } });
+                            }
+                          }
+                        }}
+                      >
+                        {review.user?.avatar ? (
+                          <Image source={{ uri: review.user.avatar }} style={{ width: 24, height: 24, borderRadius: 12 }} />
+                        ) : (
+                          <MaterialIcons name="account-circle" size={24} color="#BCAAA4" />
+                        )}
+                        <Text style={styles.reviewUserName}>{review.user?.username || review.user?.name || 'User'}</Text>
+                      </TouchableOpacity>
                     </View>
                     <View style={styles.reviewScore}>
                       <MaterialIcons name="star" size={14} color="#F4C430" />
