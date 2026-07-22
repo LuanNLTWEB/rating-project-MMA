@@ -21,14 +21,15 @@ import { getGenres } from '@/src/services/genreService';
 import { getMovies } from '@/src/services/movieService';
 
 const { width } = Dimensions.get('window');
+const currentYear = new Date().getFullYear();
 
 export default function HomeScreen() {
   const [user, setUser] = useState(null);
   const [genres, setGenres] = useState([]);
   const [trendingMovies, setTrendingMovies] = useState([]);
-  const [animeList, setAnimeList] = useState([]);
+  const [moviesThisYearList, setMoviesThisYearList] = useState([]);
+  const [topRated, setTopRated] = useState([]);
   const [movieList, setMovieList] = useState([]);
-  const [anime2026List, setAnime2026List] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,20 +56,22 @@ export default function HomeScreen() {
           }
 
           // Fetch API data in parallel
-          const [fetchedGenres, fetchedTrending, fetchedAnime, fetchedMovies, fetchedAnime2026] = await Promise.all([
+          const [fetchedGenres, fetchedTrending, fetchedMoviesThisYear, allMovies] = await Promise.all([
             getGenres(),
             getMovies({ trending: true }),
-            getMovies({ type: 'tv series' }),
-            getMovies({ type: 'movie' }),
-            getMovies({ type: 'tv series', year: 2026 }),
+            getMovies({ year: currentYear }),
+            getMovies({}),
           ]);
+
+          // Top Rated: sort all movies by score descending
+          const sortedByScore = [...allMovies].sort((a, b) => b.score - a.score);
 
           if (isMounted) {
             setGenres(fetchedGenres);
             setTrendingMovies(fetchedTrending);
-            setAnimeList(fetchedAnime);
-            setMovieList(fetchedMovies);
-            setAnime2026List(fetchedAnime2026);
+            setMoviesThisYearList(fetchedMoviesThisYear);
+            setTopRated(sortedByScore);
+            setMovieList(allMovies.filter((m) => m.type === 'movie'));
           }
         } catch (err) {
           console.error('Home Screen Load Error:', err);
@@ -165,11 +168,11 @@ export default function HomeScreen() {
     );
   }
 
-  // Find featured item (highest score trending movie, or first item)
-  const featuredMovie = trendingMovies.length > 0
+  // Find featured item (highest score movie)
+  const featuredMovie = topRated.length > 0
+    ? topRated[0]
+    : trendingMovies.length > 0
     ? [...trendingMovies].sort((a, b) => b.score - a.score)[0]
-    : animeList.length > 0
-    ? [...animeList].sort((a, b) => b.score - a.score)[0]
     : null;
 
   return (
@@ -350,20 +353,17 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Summer 2026 Anime */}
+        {/* This Year Releases */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleContainer}>
             <View style={styles.sectionIndicator} />
-            <Text style={styles.sectionTitle}>☀️ Summer 2026 Anime</Text>
+            <Text style={styles.sectionTitle}>🎬 {currentYear} Releases</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push({ pathname: '/explore', params: { type: 'tv series', year: '2026' } })}>
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
         </View>
 
-        {anime2026List.length > 0 ? (
+        {moviesThisYearList.length > 0 ? (
           <FlatList
-            data={anime2026List}
+            data={moviesThisYearList}
             renderItem={renderMovieCard}
             keyExtractor={(item) => item._id}
             horizontal
@@ -373,24 +373,21 @@ export default function HomeScreen() {
         ) : (
           <View style={styles.emptyContainer}>
             <MaterialIcons name="movie-creation" size={40} color="#BCAAA4" />
-            <Text style={styles.emptySectionText}>No Summer 2026 anime found</Text>
+            <Text style={styles.emptySectionText}>No {currentYear} movies found</Text>
           </View>
         )}
 
-        {/* Latest Anime */}
+        {/* Top Rating */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleContainer}>
             <View style={styles.sectionIndicator} />
-            <Text style={styles.sectionTitle}>📺 Latest Anime Series</Text>
+            <Text style={styles.sectionTitle}>🏆 Top Rating</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push({ pathname: '/explore', params: { type: 'tv series' } })}>
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
         </View>
 
-        {animeList.length > 0 ? (
+        {topRated.length > 0 ? (
           <FlatList
-            data={animeList}
+            data={topRated}
             renderItem={renderMovieCard}
             keyExtractor={(item) => item._id}
             horizontal
@@ -400,19 +397,16 @@ export default function HomeScreen() {
         ) : (
           <View style={styles.emptyContainer}>
             <MaterialIcons name="movie-creation" size={40} color="#BCAAA4" />
-            <Text style={styles.emptySectionText}>No anime series found</Text>
+            <Text style={styles.emptySectionText}>No rated movies found</Text>
           </View>
         )}
 
-        {/* Popular Movies */}
+        {/* Featured Movies */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleContainer}>
             <View style={styles.sectionIndicator} />
             <Text style={styles.sectionTitle}>🎬 Featured Movies</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push({ pathname: '/explore', params: { type: 'movie' } })}>
-            <Text style={styles.seeAllText}>See All</Text>
-          </TouchableOpacity>
         </View>
 
         {movieList.length > 0 ? (

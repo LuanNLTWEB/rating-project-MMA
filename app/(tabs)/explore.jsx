@@ -87,6 +87,8 @@ export default function ExploreScreen() {
     }
     if (params.year) {
       setSelectedYear(params.year);
+    } else if (!params.genreId && !params.search) {
+      setSelectedYear('');
     }
   }, [params.genreId, params.search, params.year]);
 
