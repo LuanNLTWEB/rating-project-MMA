@@ -1,28 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Tabs, router } from 'expo-router';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useAuth } from '@/src/contexts/AuthContext';
 
 export default function AdminLayout() {
+  const { user, isLoading } = useAuth();
   const [authorized, setAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkRole = async () => {
-      const userStr = await AsyncStorage.getItem('user');
-      if (!userStr) {
+    if (!isLoading) {
+      if (!user) {
         router.replace('/(auth)/login');
-        return;
-      }
-      const user = JSON.parse(userStr);
-      if (user.role !== 'admin') {
+      } else if (user.role !== 'admin') {
         router.replace('/(tabs)');
-        return;
+      } else {
+        setAuthorized(true);
       }
-      setAuthorized(true);
-    };
-    checkRole();
-  }, []);
+    }
+  }, [user, isLoading]);
 
   if (authorized === null) {
     return (

@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { getAuditLogs } from '@/src/services/adminService';
 
@@ -58,7 +59,7 @@ export default function AuditScreen() {
     }
   }, []);
 
-  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+  useFocusEffect(useCallback(() => { fetchLogs(); }, [fetchLogs]));
 
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.card}>

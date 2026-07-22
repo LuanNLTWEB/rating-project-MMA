@@ -12,10 +12,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
+import { useAuth } from '@/src/contexts/AuthContext';
 import { getProfile, updateProfile, uploadAvatar } from '@/src/services/profileService';
 
 const GENDERS = ['Male', 'Female', 'Other'];
@@ -23,6 +23,7 @@ const PHONE_REGEX = /^(0|\+84)[3-9][0-9]{8}$/;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function ProfileScreen() {
+  const { user: authUser, updateUser } = useAuth();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -67,7 +68,7 @@ export default function ProfileScreen() {
       const response = await uploadAvatar(formData);
       
       setUser(response.user);
-      await AsyncStorage.setItem('user', JSON.stringify(response.user));
+      await updateUser(response.user);
       
       setSuccess('Avatar updated successfully');
     } catch (err) {
@@ -93,16 +94,15 @@ export default function ProfileScreen() {
       setFavoritesPublic(data.favoritesPublic || false);
       setWatchlistPublic(data.watchlistPublic || false);
     } catch {
-      const userStr = await AsyncStorage.getItem('user');
-      if (userStr) {
-        const parsed = JSON.parse(userStr);
-        setUser(parsed);
-        setName(parsed.name || '');
-        setGender(parsed.gender || '');
-        setDateOfBirth(parsed.dateOfBirth || '');
-        setPhone(parsed.phone || '');
-        setFavoritesPublic(parsed.favoritesPublic || false);
-        setWatchlistPublic(parsed.watchlistPublic || false);
+      const fallback = authUser || null;
+      if (fallback) {
+        setUser(fallback);
+        setName(fallback.name || '');
+        setGender(fallback.gender || '');
+        setDateOfBirth(fallback.dateOfBirth || '');
+        setPhone(fallback.phone || '');
+        setFavoritesPublic(fallback.favoritesPublic || false);
+        setWatchlistPublic(fallback.watchlistPublic || false);
       }
     } finally {
       setLoading(false);
@@ -176,7 +176,7 @@ export default function ProfileScreen() {
 
       const data = await updateProfile(payload);
 
-      await AsyncStorage.setItem('user', JSON.stringify(data.user));
+      await updateUser(data.user);
       setUser(data.user);
 
       setSuccess('Profile updated successfully');

@@ -1,21 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect, router } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useAuth } from '@/src/contexts/AuthContext';
 import { getUsers } from '@/src/services/adminService';
 
 export default function AdminDashboard() {
-  const [user, setUser] = useState<any>(null);
+  const { user, signOut } = useAuth();
   const [stats, setStats] = useState({ total: 0, staff: 0, admin: 0, suspended: 0 });
   const [loading, setLoading] = useState(true);
 
   const loadStats = useCallback(async () => {
     try {
       setLoading(true);
-      const userStr = await AsyncStorage.getItem('user');
-      if (userStr) setUser(JSON.parse(userStr));
       const users = await getUsers();
       setStats({
         total: users.length,
@@ -30,11 +28,10 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  useEffect(() => { loadStats(); }, [loadStats]);
+  useFocusEffect(useCallback(() => { loadStats(); }, [loadStats]));
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
+    await signOut();
     router.replace('/(auth)/login');
   };
 

@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator,
   StatusBar, Alert, Modal, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect, router } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useAuth } from '@/src/contexts/AuthContext';
 import { getUsers, updateUserRole, updateUserStatus, deleteUser } from '@/src/services/adminService';
 
 const ROLE_COLORS: Record<string, string> = {
@@ -17,6 +17,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function AccountsScreen() {
+  const { user: currentUser, updateUser } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -37,7 +38,7 @@ export default function AccountsScreen() {
     }
   }, []);
 
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+  useFocusEffect(useCallback(() => { fetchUsers(); }, [fetchUsers]));
 
   const handleRoleChange = async () => {
     if (!selectedUser || !newRole) return;
@@ -46,14 +47,9 @@ export default function AccountsScreen() {
       Alert.alert('Success', `Role changed to ${newRole}`);
       setRoleModal(false);
       fetchUsers();
-      const userStr = await AsyncStorage.getItem('user');
-      if (userStr) {
-        const currentUser = JSON.parse(userStr);
-        if ((currentUser._id || currentUser.id) === selectedUser._id) {
-          const updatedUser = { ...currentUser, role: newRole };
-          await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-          if (newRole !== 'admin') router.replace('/(tabs)');
-        }
+      if ((currentUser?._id || currentUser?.id) === selectedUser._id) {
+        await updateUser({ role: newRole });
+        if (newRole !== 'admin') router.replace('/(tabs)');
       }
     } catch (err: any) {
       Alert.alert('Error', err.response?.data?.message || 'Failed');
@@ -75,14 +71,9 @@ export default function AccountsScreen() {
               await updateUserStatus(user._id, newStatus);
               Alert.alert('Success', `Account ${label}ed`);
               fetchUsers();
-              const userStr = await AsyncStorage.getItem('user');
-              if (userStr) {
-                const currentUser = JSON.parse(userStr);
-                if ((currentUser._id || currentUser.id) === user._id) {
-                  const updatedUser = { ...currentUser, status: newStatus };
-                  await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-                  if (newStatus !== 'active') router.replace('/(tabs)');
-                }
+              if ((currentUser?._id || currentUser?.id) === user._id) {
+                await updateUser({ status: newStatus });
+                if (newStatus !== 'active') router.replace('/(tabs)');
               }
             } catch (err: any) {
               Alert.alert('Error', err.response?.data?.message || 'Failed');

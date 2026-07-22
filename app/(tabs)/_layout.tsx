@@ -1,29 +1,16 @@
 import { Tabs } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuth } from '@/src/contexts/AuthContext';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const [role, setRole] = useState(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const userStr = await AsyncStorage.getItem('user');
-        if (userStr) {
-          const user = JSON.parse(userStr);
-          setRole(user.role);
-        }
-      } catch {}
-    })();
-  }, []);
-
-  const isCustomer = role === 'customer' || role === null;
+  const { user } = useAuth();
+  const isCustomer = user?.role === 'customer' || !user;
 
   return (
     <Tabs

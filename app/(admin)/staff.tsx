@@ -1,15 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator,
   StatusBar, Alert, Modal, TextInput, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect, router } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useAuth } from '@/src/contexts/AuthContext';
 import { getUsers, createStaffAccount, updateUserStatus } from '@/src/services/adminService';
 
 export default function StaffScreen() {
+  const { user: currentUser, updateUser } = useAuth();
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -35,7 +36,7 @@ export default function StaffScreen() {
     }
   }, []);
 
-  useEffect(() => { fetchStaff(); }, [fetchStaff]);
+  useFocusEffect(useCallback(() => { fetchStaff(); }, [fetchStaff]));
 
   const openCreate = () => {
     setName(''); setEmail(''); setPassword(''); setGender('Male');
@@ -72,14 +73,9 @@ export default function StaffScreen() {
         onPress: async () => {
           await updateUserStatus(user._id, newStatus);
           fetchStaff();
-          const userStr = await AsyncStorage.getItem('user');
-          if (userStr) {
-            const currentUser = JSON.parse(userStr);
-            if ((currentUser._id || currentUser.id) === user._id) {
-              const updatedUser = { ...currentUser, status: newStatus };
-              await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-              if (newStatus !== 'active') router.replace('/(tabs)');
-            }
+          if ((currentUser?._id || currentUser?.id) === user._id) {
+            await updateUser({ status: newStatus });
+            if (newStatus !== 'active') router.replace('/(tabs)');
           }
         },
       },

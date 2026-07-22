@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator,
   StatusBar, Alert, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect, router } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useAuth } from '@/src/contexts/AuthContext';
 import { getUsers, updateUserRole } from '@/src/services/adminService';
 
 const ROLE_COLORS: Record<string, string> = {
@@ -14,6 +14,7 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export default function RolesScreen() {
+  const { user: currentUser, updateUser } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState('');
@@ -34,7 +35,7 @@ export default function RolesScreen() {
     }
   }, []);
 
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+  useFocusEffect(useCallback(() => { fetchUsers(); }, [fetchUsers]));
 
   const handleSave = async () => {
     if (!selectedUser || !newRole) return;
@@ -43,14 +44,9 @@ export default function RolesScreen() {
       Alert.alert('Success', `"${selectedUser.name}" is now ${newRole}`);
       setModalVisible(false);
       fetchUsers();
-      const userStr = await AsyncStorage.getItem('user');
-      if (userStr) {
-        const currentUser = JSON.parse(userStr);
-        if ((currentUser._id || currentUser.id) === selectedUser._id) {
-          const updatedUser = { ...currentUser, role: newRole };
-          await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-          if (newRole !== 'admin') router.replace('/(tabs)');
-        }
+      if ((currentUser?._id || currentUser?.id) === selectedUser._id) {
+        await updateUser({ role: newRole });
+        if (newRole !== 'admin') router.replace('/(tabs)');
       }
     } catch (err: any) {
       Alert.alert('Error', err.response?.data?.message || 'Failed');
