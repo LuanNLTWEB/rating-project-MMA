@@ -4,6 +4,8 @@ import {
   StatusBar, Alert, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { getUsers, updateUserRole } from '@/src/services/adminService';
 
@@ -41,6 +43,15 @@ export default function RolesScreen() {
       Alert.alert('Success', `"${selectedUser.name}" is now ${newRole}`);
       setModalVisible(false);
       fetchUsers();
+      const userStr = await AsyncStorage.getItem('user');
+      if (userStr) {
+        const currentUser = JSON.parse(userStr);
+        if ((currentUser._id || currentUser.id) === selectedUser._id) {
+          const updatedUser = { ...currentUser, role: newRole };
+          await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+          if (newRole !== 'admin') router.replace('/(tabs)');
+        }
+      }
     } catch (err: any) {
       Alert.alert('Error', err.response?.data?.message || 'Failed');
     }

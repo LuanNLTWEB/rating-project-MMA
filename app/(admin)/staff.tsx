@@ -4,6 +4,8 @@ import {
   StatusBar, Alert, Modal, TextInput, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { getUsers, createStaffAccount, updateUserStatus } from '@/src/services/adminService';
 
@@ -70,6 +72,15 @@ export default function StaffScreen() {
         onPress: async () => {
           await updateUserStatus(user._id, newStatus);
           fetchStaff();
+          const userStr = await AsyncStorage.getItem('user');
+          if (userStr) {
+            const currentUser = JSON.parse(userStr);
+            if ((currentUser._id || currentUser.id) === user._id) {
+              const updatedUser = { ...currentUser, status: newStatus };
+              await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+              if (newStatus !== 'active') router.replace('/(tabs)');
+            }
+          }
         },
       },
     ]);
